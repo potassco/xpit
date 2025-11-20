@@ -6,6 +6,8 @@ from clingo.ast import ProgramBuilder, Transformer, ASTType, Aggregate, Guard, C
 from clingo.backend import Observer
 from clingo.symbol import parse_term
 import clingo.symbol as clisym
+from clingexplaid.mus import CoreComputer
+
 
 # import constraint_handler
 # import constraint_handler.unsatCoreSupport as ch_usc
@@ -149,7 +151,7 @@ class ExpDirectorProto(Application):
             "explainables",
             dedent(
                 """\
-                Explainable predicates. 
+                Explainable predicates.
                 """
             ),
             self.parse_explainables,
@@ -193,8 +195,10 @@ class ExpDirectorProto(Application):
             print("================")
 
 
-    def print_core(self):
-        for l in self._current_core:
+    def print_core(self, core=None):
+        if core is None:
+            core = self._current_core
+        for l in core:
             if l in self._mapping:
                 print(l, [str(a.symbol) for a in self._mapping[l]])
                 # print(l, [str(a) for a in self._mapping[l]])
@@ -230,14 +234,26 @@ class ExpDirectorProto(Application):
         ## self._mapping.update(readable)
         ## self._assumption_budget += new_assumptions
 
-        ctl.solve(on_core=self._on_core, assumptions=self._assumption_budget)
+        #convert assumption budget for CoreComputer
+        assumption_list = [(a, True) for a in self._assumption_budget]
+        print(assumption_list)
+        cc = CoreComputer(ctl, self._assumption_budget) # this way we cannot add negative assumptions (but we don't need them here?)
 
-        print("First core:", self._current_core)
-        self.print_core()
-        if self._current_core:
-            self._minimize_core(ctl)
-        print("Minimal core:")
-        self.print_core()
+        # cc.shrink()
+        mus_generator = cc.get_multiple_minimal()
+        for i, mus in enumerate(mus_generator):
+            min_unsat_set = [a.literal for a in mus.assumptions] # we ignore the sign here (since all are positive)
+            print(f"Minimal core {i}:")
+            self.print_core(min_unsat_set)
+
+        # ctl.solve(on_core=self._on_core, assumptions=self._assumption_budget)
+
+        # print("First core:", self._current_core)
+        # self.print_core()
+        # if self._current_core:
+        #     self._minimize_core(ctl)
+        # print("Minimal core:")
+        # self.print_core()
 
 if __name__ == "__main__":
     sys.exit(int(clingo_main(ExpDirectorProto(), sys.argv[1:])))
