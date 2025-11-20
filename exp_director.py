@@ -235,8 +235,6 @@ class ExpDirectorProto(Application):
         ## self._assumption_budget += new_assumptions
 
         #convert assumption budget for CoreComputer
-        assumption_list = [(a, True) for a in self._assumption_budget]
-        print(assumption_list)
         cc = CoreComputer(ctl, self._assumption_budget) # this way we cannot add negative assumptions (but we don't need them here?)
 
         # cc.shrink()
