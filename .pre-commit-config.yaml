@@ -1,0 +1,79 @@
+repos:
+  - repo: https://github.com/myint/autoflake
+    rev: v2.3.1
+    hooks:
+    - id: autoflake
+      args: ["--in-place",  "--imports=explanation_directory_prototype", "--ignore-init-module-imports", "--remove-unused-variables"]
+      exclude: ^.github/
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+    - id: end-of-file-fixer
+    - id: trailing-whitespace
+      exclude: ^.github/
+
+  - repo: https://github.com/pycqa/isort
+    rev: 7.0.0
+    hooks:
+      - id: isort
+        exclude: ^.github/
+
+  - repo: https://github.com/psf/black
+    rev: 25.9.0
+    hooks:
+    - id: black
+      exclude: ^.github/
+
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 1.0.0
+    hooks:
+    - id: mdformat
+      args: ["--wrap", "79"]
+      exclude: ^docs/
+      additional_dependencies:
+      - mdformat-gfm
+
+  - repo: local
+    hooks:
+      - id: pylint
+        name: pylint
+        entry: pylint
+        language: system
+        require_serial: true
+        types: [python]
+        args: [--disable=W0511]
+
+      - id: mypy
+        name: mypy
+        entry: mypy
+        language: system
+        types: [python]
+        args: [".", "--untyped-calls-exclude=sympy"]
+        pass_filenames: false
+        always_run: true
+
+      - id: coverage
+        name: coverage
+        entry: coverage
+        language: system
+        pass_filenames: false
+        always_run: true
+        args: [run, -m, pytest]
+
+      - id: coverage-report
+        name: coverage-report
+        entry: coverage
+        language: system
+        pass_filenames: false
+        always_run: true
+        args: [report, -m, --fail-under=100]
+
+      - id: mkdocs
+        name: mkdocs
+        entry: mkdocs
+        args: ['build', '-c']
+        language: python
+        require_serial: true
+        always_run: true
+        pass_filenames: false

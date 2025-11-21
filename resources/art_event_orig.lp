@@ -32,10 +32,9 @@ needs(comu,2).
 separate_days(comu) :- not _explain(separate_days,msg("Session {} cannot be separeted",("comu",))).
 separate_days(edu) :- not _explain(separate_days,msg("Session {} cannot be separeted",("edu",))).
 
-% don't assign edu to the same slot with others 
+% don't assign edu to the same slot with others
 no_same_slot(edu,comu) :- not _explain(not_in_same_slot,msg("Sessions {} and {} cannot be scheduled without sharing a slot",("edu", "comu"))).
 no_same_slot(edu,fut) :- not _explain(not_in_same_slot,msg("Sessions {} and {} cannot be scheduled without sharing a slot",("edu", "fut"))).
 
 % Use only day1 for fut
 only_this_day(fut,day2).
-

@@ -1,13 +1,28 @@
 import sys
+from copy import deepcopy
 from textwrap import dedent
-from copy import copy, deepcopy
-from clingo.application import Application, clingo_main
-from clingo.ast import ProgramBuilder, Transformer, ASTType, Aggregate, Guard, ComparisonOperator, Rule, Disjunction, Function, ConditionalLiteral, SymbolicTerm, Sign, parse_files, parse_string
-from clingo.backend import Observer
-from clingo.symbol import parse_term
+
 import clingo.symbol as clisym
 from clingexplaid.mus import CoreComputer
-
+from clingo.application import Application, clingo_main
+from clingo.ast import (
+    Aggregate,
+    ASTType,
+    ComparisonOperator,
+    ConditionalLiteral,
+    Disjunction,
+    Function,
+    Guard,
+    ProgramBuilder,
+    Rule,
+    Sign,
+    SymbolicTerm,
+    Transformer,
+    parse_files,
+    parse_string,
+)
+from clingo.backend import Observer
+from clingo.symbol import parse_term
 
 # import constraint_handler
 # import constraint_handler.unsatCoreSupport as ch_usc
@@ -18,35 +33,38 @@ class ExplanationTransformer(Transformer):
     def __init__(self, explainables):
         self._explainables = explainables
 
-
     def visit_Rule(self, ast):
         is_marked_for_explanation = False
 
         for lit in ast.body:
-            if (lit.ast_type == ASTType.Literal and
-               lit.atom.ast_type == ASTType.SymbolicAtom and
-               lit.atom.symbol.ast_type == ASTType.Function and
-                    lit.atom.symbol.name == "_explain"):
+            if (
+                lit.ast_type == ASTType.Literal
+                and lit.atom.ast_type == ASTType.SymbolicAtom
+                and lit.atom.symbol.ast_type == ASTType.Function
+                and lit.atom.symbol.name == "_explain"
+            ):
                 exp_lit = deepcopy(lit)
                 exp_lit.atom.symbol.name = "_exp"
                 exp_lit.sign = Sign.NoSign
-                is_marked_for_explanation =True
+                is_marked_for_explanation = True
                 break
 
         # print("Explanation mark:", is_marked_for_explanation)
         # print(ast)
-        if  is_marked_for_explanation:
-            new_rule = Rule(ast.location,
-                            Aggregate(ast.location,
-                                      Guard(ComparisonOperator.LessEqual, SymbolicTerm(ast.location, parse_term("1"))),
-                                      [ConditionalLiteral(ast.location, ast.head, []),
-                                       ConditionalLiteral(ast.location, exp_lit, [])],
-                                      Guard(ComparisonOperator.LessEqual, SymbolicTerm(ast.location, parse_term("1")))),
-                            ast.body)
+        if is_marked_for_explanation:
+            new_rule = Rule(
+                ast.location,
+                Aggregate(
+                    ast.location,
+                    Guard(ComparisonOperator.LessEqual, SymbolicTerm(ast.location, parse_term("1"))),
+                    [ConditionalLiteral(ast.location, ast.head, []), ConditionalLiteral(ast.location, exp_lit, [])],
+                    Guard(ComparisonOperator.LessEqual, SymbolicTerm(ast.location, parse_term("1"))),
+                ),
+                ast.body,
+            )
             # print(new_rule)
             return new_rule
         return ast
-
 
     ## def visit_Rule(self, ast):
     ##     fact = False
@@ -71,7 +89,7 @@ class ExplanationTransformer(Transformer):
     ##             ast = ast.update(name="_exp", arguments=[Function(ast.location, ast.name, ast.arguments, 0)])
     ##     return ast
 
-    #def visit(self, ast):
+    # def visit(self, ast):
     #    print(ast.ast_type)
     #    if (ast.ast_type == ASTType.Rule):
     #        # print(ast.head.sign)
@@ -110,8 +128,8 @@ class ExpDirectorProto(Application):
     def parse_explainables(self, val):
         preds = val.split()
         for p in preds:
-            idx = p.find('/')
-            self._explainables.append((p[:idx],int(p[idx+1:])))
+            idx = p.find("/")
+            self._explainables.append((p[:idx], int(p[idx + 1 :])))
         print(self._explainables)
         return True
 
@@ -122,7 +140,7 @@ class ExpDirectorProto(Application):
     def _create_assumption_budget(self, ctl, num):
         with ctl.backend() as backend:
             for i in range(num):
-                sym = clisym.Function("assumption"+str(i+1))
+                sym = clisym.Function("assumption" + str(i + 1))
                 atm = backend.add_atom(sym)
                 self._assumption_budget.append(atm)
                 backend.add_rule(head=[atm], choice=True)
@@ -131,16 +149,18 @@ class ExpDirectorProto(Application):
         print("Setting the assumptions...")
         with ctl.backend() as backend:
             idx = 0
-            for a in ctl.symbolic_atoms.by_signature("_exp",2):
+            for a in ctl.symbolic_atoms.by_signature("_exp", 2):
                 print(a.symbol, a.literal, "mapped to", self._assumption_budget[idx])
-                backend.add_rule(head=[], body=[a.literal, self._assumption_budget[idx]])       # :- _exp(...), assumptionX.
-                backend.add_rule(head=[a.literal], body=[-1*self._assumption_budget[idx]], choice=False)  # _exp(...) :- not assumptionX.
+                backend.add_rule(head=[], body=[a.literal, self._assumption_budget[idx]])  # :- _exp(...), assumptionX.
+                backend.add_rule(
+                    head=[a.literal], body=[-1 * self._assumption_budget[idx]], choice=False
+                )  # _exp(...) :- not assumptionX.
                 # backend.add_rule(head=[], body=[-1*a.literal, -1*self._assumption_budget[idx]]) # :- not _exp(...), not assumptionX.
                 if self._assumption_budget[idx] in self._mapping:
                     self._mapping[self._assumption_budget[idx]].append(a)
                 else:
                     self._mapping[self._assumption_budget[idx]] = [a]
-                if (idx+1) < len(self._assumption_budget):
+                if (idx + 1) < len(self._assumption_budget):
                     idx += 1
 
     def register_options(self, options):
@@ -170,7 +190,6 @@ class ExpDirectorProto(Application):
             argument="<num-of-assumptions>",
         )
 
-
     def _minimize_core(self, ctl):
         is_corelit_used = {lit: False for lit in self._current_core}
         core_minimized = False
@@ -180,36 +199,36 @@ class ExpDirectorProto(Application):
             self._current_core.remove(current_lit)
             is_corelit_used[current_lit] = True
 
-            #res = ctl.solve(assumptions=[l for l in self._assumption_budget if l != current_lit], on_core=self._on_core)
+            # res = ctl.solve(assumptions=[l for l in self._assumption_budget if l != current_lit], on_core=self._on_core)
             res = ctl.solve(assumptions=self._current_core, on_core=self._on_core)
             if res.unsatisfiable:
-                print(current_lit,"is not in the minimal core")
+                print(current_lit, "is not in the minimal core")
                 print("Current core:")
                 self.print_core()
-                pass
             else:
-                print(current_lit,"is in the minimal core")
+                print(current_lit, "is in the minimal core")
                 self._current_core.append(current_lit)
 
             core_minimized = all((is_corelit_used[lit] for lit in self._current_core))
             print("================")
-
 
     def print_core(self, core=None):
         if core is None:
             core = self._current_core
         for l in core:
             if l in self._mapping:
+                for a in self._mapping[l]:
+                    msg = a.symbol.arguments[1].arguments[0].string
+                    args = a.symbol.arguments[1].arguments[1].arguments
+                    print(msg.format(*args))
                 print(l, [str(a.symbol) for a in self._mapping[l]])
                 # print(l, [str(a) for a in self._mapping[l]])
-
 
     def _on_core(self, core):
         self._current_core = core
 
-
     def main(self, ctl, files):
-        self._create_assumption_budget(ctl,self._num_of_assumptions)
+        self._create_assumption_budget(ctl, self._num_of_assumptions)
 
         if not files:
             files = ["-"]
@@ -218,7 +237,6 @@ class ExpDirectorProto(Application):
             # constraint_handler.add_encoding_to_program_builder(bld)
             fr = ExplanationTransformer(self._explainables)
             parse_files(files, lambda stm: bld.add(fr.visit(stm)))
-
 
         ctl.register_observer(ExpObserver())
         ctl.ground([("base", [])])
@@ -234,13 +252,15 @@ class ExpDirectorProto(Application):
         ## self._mapping.update(readable)
         ## self._assumption_budget += new_assumptions
 
-        #convert assumption budget for CoreComputer
-        cc = CoreComputer(ctl, self._assumption_budget) # this way we cannot add negative assumptions (but we don't need them here?)
+        # convert assumption budget for CoreComputer
+        cc = CoreComputer(
+            ctl, self._assumption_budget
+        )  # this way we cannot add negative assumptions (but we don't need them here?)
 
         # cc.shrink()
         mus_generator = cc.get_multiple_minimal()
         for i, mus in enumerate(mus_generator):
-            min_unsat_set = [a.literal for a in mus.assumptions] # we ignore the sign here (since all are positive)
+            min_unsat_set = [a.literal for a in mus.assumptions]  # we ignore the sign here (since all are positive)
             print(f"Minimal core {i}:")
             self.print_core(min_unsat_set)
 
@@ -252,6 +272,7 @@ class ExpDirectorProto(Application):
         #     self._minimize_core(ctl)
         # print("Minimal core:")
         # self.print_core()
+
 
 if __name__ == "__main__":
     sys.exit(int(clingo_main(ExpDirectorProto(), sys.argv[1:])))
