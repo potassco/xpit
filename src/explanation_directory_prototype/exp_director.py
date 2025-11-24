@@ -1,17 +1,21 @@
+"""Explanation Director Prototype Application"""
+
 import sys
+from collections import defaultdict
 from copy import deepcopy
 from textwrap import dedent
+from typing import Sequence
 
 import clingo.symbol as clisym
 from clingexplaid.mus import CoreComputer
+from clingo import ApplicationOptions, Control, SymbolicAtom, SymbolType
 from clingo.application import Application, clingo_main
 from clingo.ast import (
+    AST,
     Aggregate,
     ASTType,
     ComparisonOperator,
     ConditionalLiteral,
-    Disjunction,
-    Function,
     Guard,
     ProgramBuilder,
     Rule,
@@ -19,21 +23,25 @@ from clingo.ast import (
     SymbolicTerm,
     Transformer,
     parse_files,
-    parse_string,
 )
 from clingo.backend import Observer
 from clingo.symbol import parse_term
 
-# import constraint_handler
-# import constraint_handler.unsatCoreSupport as ch_usc
+from explanation_directory_prototype.utils.logging import get_logger
 
+log = get_logger("main")
 
 class ExplanationTransformer(Transformer):
+    """
+    Transformer to modify rules marked for explanation. Marked rules contain a literal of the form
+    _explain/2 in their body."""
 
-    def __init__(self, explainables):
+    def __init__(self, explainables: list[tuple[str, int]]) -> None:
+        """initialize the transformer."""
         self._explainables = explainables
 
-    def visit_Rule(self, ast):
+    def visit_Rule(self, ast: AST) -> AST:  # pylint: disable=invalid-name
+        """Visit a rule AST node and transform it if it is marked for explanation."""
         is_marked_for_explanation = False
 
         for lit in ast.body:
@@ -49,8 +57,6 @@ class ExplanationTransformer(Transformer):
                 is_marked_for_explanation = True
                 break
 
-        # print("Explanation mark:", is_marked_for_explanation)
-        # print(ast)
         if is_marked_for_explanation:
             new_rule = Rule(
                 ast.location,
@@ -62,70 +68,36 @@ class ExplanationTransformer(Transformer):
                 ),
                 ast.body,
             )
-            # print(new_rule)
             return new_rule
         return ast
 
-    ## def visit_Rule(self, ast):
-    ##     fact = False
-    ##     if not ast.body and ast.head.ast_type == ASTType.Literal:
-    ##         # it is a fact
-    ##         fact = True
-    ##     t_ast = ast.update(**self.visit_children(ast,fact))
-    ##     if fact and (ast is not t_ast):
-    ##         # it is a fact that has been transformed
-    ##         return Rule(ast.location,
-    ##                     Disjunction(ast.location,
-    ##                                 [ConditionalLiteral(ast.location, ast.head, []), ConditionalLiteral(ast.location, t_ast.head, [])]
-    ##                                 ),[])
-    ##     else:
-    ##         return t_ast
-
-    ## def visit_Function(self, ast, is_fact):
-    ##     # print(ast, is_fact)
-    ##     if is_fact:
-    ##         name, argc = str(ast.name), len(ast.arguments)
-    ##         if (name,argc) in self._explainables:
-    ##             ast = ast.update(name="_exp", arguments=[Function(ast.location, ast.name, ast.arguments, 0)])
-    ##     return ast
-
-    # def visit(self, ast):
-    #    print(ast.ast_type)
-    #    if (ast.ast_type == ASTType.Rule):
-    #        # print(ast.head.sign)
-    #        print(ast.head.ast_type)
-    #        print("Head is ", ast.head)
-    #        if ast.head is None:
-    #            print("Constraint rule...")
-    #        print(repr(ast.head))
-    #        if ast.head.ast_type == ASTType.Disjunction:
-    #            print(ast.head.elements)
-    #        print(ast.body)
-    #    return ast
-
 
 class ExpObserver(Observer):
+    """Observer to monitor the grounding process."""
 
-    def rule(self, choice, head, body):
-        # print(choice, head, body)
-        pass
+    # def rule(self, choice, head, body):
+    #     """Called when a rule is added to the program."""
+    #     pass
 
-    def theory_term_string(self, term_id, name):
+    def theory_term_string(self, term_id: int, name: str) -> None:
+        """Called when a theory term string is encountered."""
         print(term_id, name)
 
 
 class ExpDirectorProto(Application):
+    """Explanation Director Prototype Application"""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the Explanation Director Prototype Application."""
         self.program_name = "exp_director"
         self.version = "0.1"
-        self._explainables = []
-        self._num_of_assumptions = 10
-        self._assumption_budget = []
-        self._mapping = {}
-        self._current_core = []
+        self._explainables: list[tuple[str, int]] = []
+        self._num_of_assumptions: int = 10
+        self._assumption_budget: list[int] = []
+        self._mapping: defaultdict[int, list[SymbolicAtom]] = defaultdict(list)
 
-    def parse_explainables(self, val):
+    def parse_explainables(self, val: str) -> bool:
+        """Parse explainable predicates from a string."""
         preds = val.split()
         for p in preds:
             idx = p.find("/")
@@ -133,11 +105,13 @@ class ExpDirectorProto(Application):
         print(self._explainables)
         return True
 
-    def set_number_of_assumptions(self, val):
+    def set_number_of_assumptions(self, val: str) -> bool:
+        """Set the number of assumptions in the budget."""
         self._num_of_assumptions = int(val)
         return True
 
-    def _create_assumption_budget(self, ctl, num):
+    def _create_assumption_budget(self, ctl: Control, num: int) -> None:
+        """Create an assumption budget with a specified number of assumptions."""
         with ctl.backend() as backend:
             for i in range(num):
                 sym = clisym.Function("assumption" + str(i + 1))
@@ -145,25 +119,24 @@ class ExpDirectorProto(Application):
                 self._assumption_budget.append(atm)
                 backend.add_rule(head=[atm], choice=True)
 
-    def _use_assumption_budget(self, ctl):
-        print("Setting the assumptions...")
+    def _use_assumption_budget(self, ctl: Control) -> None:
+        """Use the assumption budget to control explainable literals."""
+        log.debug("Setting the assumptions...")
         with ctl.backend() as backend:
             idx = 0
             for a in ctl.symbolic_atoms.by_signature("_exp", 2):
-                print(a.symbol, a.literal, "mapped to", self._assumption_budget[idx])
+                log.debug("%s %s mapped to %s", a.symbol, a.literal, self._assumption_budget[idx])
                 backend.add_rule(head=[], body=[a.literal, self._assumption_budget[idx]])  # :- _exp(...), assumptionX.
                 backend.add_rule(
                     head=[a.literal], body=[-1 * self._assumption_budget[idx]], choice=False
                 )  # _exp(...) :- not assumptionX.
-                # backend.add_rule(head=[], body=[-1*a.literal, -1*self._assumption_budget[idx]]) # :- not _exp(...), not assumptionX.
-                if self._assumption_budget[idx] in self._mapping:
-                    self._mapping[self._assumption_budget[idx]].append(a)
-                else:
-                    self._mapping[self._assumption_budget[idx]] = [a]
-                if (idx + 1) < len(self._assumption_budget):
+                self._mapping[self._assumption_budget[idx]].append(a)
+                if (idx + 1) < self._num_of_assumptions:
                     idx += 1
 
-    def register_options(self, options):
+    def register_options(self, options: ApplicationOptions) -> None:
+        """Register command-line options for the application."""
+        log.debug("Registering options...")
         group = "Explanation director options"
 
         options.add(
@@ -190,88 +163,52 @@ class ExpDirectorProto(Application):
             argument="<num-of-assumptions>",
         )
 
-    def _minimize_core(self, ctl):
-        is_corelit_used = {lit: False for lit in self._current_core}
-        core_minimized = False
-
-        while not core_minimized:
-            current_lit = next(lit for lit in self._current_core if not is_corelit_used[lit])
-            self._current_core.remove(current_lit)
-            is_corelit_used[current_lit] = True
-
-            # res = ctl.solve(assumptions=[l for l in self._assumption_budget if l != current_lit], on_core=self._on_core)
-            res = ctl.solve(assumptions=self._current_core, on_core=self._on_core)
-            if res.unsatisfiable:
-                print(current_lit, "is not in the minimal core")
-                print("Current core:")
-                self.print_core()
-            else:
-                print(current_lit, "is in the minimal core")
-                self._current_core.append(current_lit)
-
-            core_minimized = all((is_corelit_used[lit] for lit in self._current_core))
-            print("================")
-
-    def print_core(self, core=None):
-        if core is None:
-            core = self._current_core
+    def core_to_str(self, core: list[int]) -> str:
+        """Print the core literals with their corresponding messages."""
+        result = ""
+        result += f"Core literals: {core}\n"
         for l in core:
             if l in self._mapping:
+                result += f"Explanation for assumption {l}:\n"
                 for a in self._mapping[l]:
-                    msg = a.symbol.arguments[1].arguments[0].string
-                    args = a.symbol.arguments[1].arguments[1].arguments
-                    print(msg.format(*args))
-                print(l, [str(a.symbol) for a in self._mapping[l]])
-                # print(l, [str(a) for a in self._mapping[l]])
+                    result += "    " + self.format_explanation_symbol(a.symbol) + "\n"
+        return result
 
-    def _on_core(self, core):
-        self._current_core = core
+    def format_explanation_symbol(self, symbol: clisym.Symbol) -> str:
+        """Format the explanation for a given symbol."""
+        if symbol.type == SymbolType.Function and symbol.name == "_exp":
+            msg = symbol.arguments[1].arguments[0].string
+            if symbol.arguments[1].arguments[1].type == SymbolType.Function:
+                args = symbol.arguments[1].arguments[1].arguments
+            else:
+                args = [symbol.arguments[1].arguments[1]]
+            return msg.format(*[str(arg) for arg in args])
+        return str(symbol)
 
-    def main(self, ctl, files):
-        self._create_assumption_budget(ctl, self._num_of_assumptions)
+    def main(self, control: Control, files: Sequence[str]) -> None:
+        """Main function to run the Explanation Director Prototype Application."""
+        self._create_assumption_budget(control, self._num_of_assumptions)
 
         if not files:
             files = ["-"]
 
-        with ProgramBuilder(ctl) as bld:
-            # constraint_handler.add_encoding_to_program_builder(bld)
+        with ProgramBuilder(control) as bld:
             fr = ExplanationTransformer(self._explainables)
             parse_files(files, lambda stm: bld.add(fr.visit(stm)))
 
-        ctl.register_observer(ExpObserver())
-        ctl.ground([("base", [])])
-        self._use_assumption_budget(ctl)
-
-        ## chexplainMap = dict()
-        ## for atom in ctl.symbolic_atoms.by_signature("explain_please", 1):
-        ##     chexplainMap[atom.literal] = atom.symbol.arguments[0]
-        ## assumptionMap = ch_usc.get_assumptions(ctl)
-        ## ch_usc.relax(ctl,chexplainMap.values())
-        ## readable = { key : [val] for key,val in assumptionMap.items() }
-        ## new_assumptions = assumptionMap.keys()
-        ## self._mapping.update(readable)
-        ## self._assumption_budget += new_assumptions
+        control.register_observer(ExpObserver())
+        control.ground([("base", [])])
+        self._use_assumption_budget(control)
 
         # convert assumption budget for CoreComputer
-        cc = CoreComputer(
-            ctl, self._assumption_budget
-        )  # this way we cannot add negative assumptions (but we don't need them here?)
-
-        # cc.shrink()
+        cc = CoreComputer(control, self._assumption_budget)
         mus_generator = cc.get_multiple_minimal()
         for i, mus in enumerate(mus_generator):
             min_unsat_set = [a.literal for a in mus.assumptions]  # we ignore the sign here (since all are positive)
             print(f"Minimal core {i}:")
-            self.print_core(min_unsat_set)
-
-        # ctl.solve(on_core=self._on_core, assumptions=self._assumption_budget)
-
-        # print("First core:", self._current_core)
-        # self.print_core()
-        # if self._current_core:
-        #     self._minimize_core(ctl)
-        # print("Minimal core:")
-        # self.print_core()
+            core_as_str = self.core_to_str(min_unsat_set)
+            print(core_as_str)
+            log.debug("Minimal core %d:\n%s", i, core_as_str)
 
 
 if __name__ == "__main__":

@@ -78,5 +78,5 @@ omit = ["*/explanation_directory_prototype/__main__.py"]
 exclude_lines = ["assert", "nocoverage"]
 
 [tool.mypy]
-exclude = ["scratch", "resources", "site"]
+exclude = ["build", "resources", "site", "noxfile.py"]
 strict = true

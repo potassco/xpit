@@ -27,10 +27,8 @@ def main() -> None:
     log.debug("debug")
     log.error("error")
 
-    # TODO: how does this main function work?
-    # read all input arguments
-    input_args = vars(args)
-    log.debug(f"Input arguments: {input_args}")
+    # log input
+    log.debug("Input arguments: %s, %s", args, clingo_args)
 
     # Call the clingo main function with the ExpDirectorProto class and input arguments
     sys.exit(int(clingo_main(ExpDirectorProto(), clingo_args + [f"--assumpt-num={args.assumpt_num}"])))

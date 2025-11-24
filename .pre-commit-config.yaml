@@ -1,3 +1,5 @@
+exclude: 'noxfile\.py$'
+
 repos:
   - repo: https://github.com/myint/autoflake
     rev: v2.3.1

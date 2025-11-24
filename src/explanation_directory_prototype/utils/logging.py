@@ -45,7 +45,7 @@ class SingleLevelFilter(logging.Filter):
         return record.levelno == self.passlevel
 
 
-def configure_logging(stream: TextIO, level: int, use_color: bool, force: bool = True) -> None:
+def configure_logging(stream: TextIO, level: int, use_color: bool, force: bool = False) -> None:
     """
     Configure application logging.
     """
