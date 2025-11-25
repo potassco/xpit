@@ -5,7 +5,7 @@ icon: material/file-code
 # Encodings
 
 
-<!-- ::: src/explanation_directory_prototype/encodings/test.lp
+<!-- ::: src/explanation_director_prototype/encodings/test.lp
     handler: asp
     options:
         glossary: true

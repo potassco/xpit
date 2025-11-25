@@ -11,7 +11,7 @@ from . import logging
 
 __all__ = ["get_parser"]
 
-VERSION = metadata.version("explanation_directory_prototype")
+VERSION = metadata.version("explanation_director_prototype")
 
 
 def get_parser() -> ArgumentParser:
@@ -19,10 +19,10 @@ def get_parser() -> ArgumentParser:
     Return the parser for command line options.
     """
     parser = ArgumentParser(
-        prog="explanation_directory_prototype",
+        prog="explanation_director_prototype",
         description=dedent(
             """\
-            explanation_directory_prototype
+            explanation_director_prototype
             filldescription
             """
         ),

@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for considering a contribution to explanation_directory_prototype. ❤️
+Thanks for considering a contribution to explanation_director_prototype. ❤️
 
 ## How to get help or discuss possible contributions
 
@@ -12,7 +12,7 @@ To avoid duplicating issues, please search our [issue tracker][issues] and our
 
 ## How to make a contribution
 
-- Fork the [explanation_directory_prototype][project_url] repository and create
+- Fork the [explanation_director_prototype][project_url] repository and create
   a branch for your changes.
 - Submit a pull request to the master branch with your changes.
 - Respond to feedback on your pull request.

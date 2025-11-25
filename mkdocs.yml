@@ -1,8 +1,8 @@
-site_name: explanation_directory_prototype
-site_url: https://potassco.org/explanation_directory_prototype
+site_name: explanation_director_prototype
+site_url: https://potassco.org/explanation_director_prototype
 site_description:
-repo_name: potassco/explanation_directory_prototype
-repo_url: https://github.com/potassco/explanation_directory_prototype
+repo_name: potasscosolutions/explanation_director_prototype
+repo_url: https://github.com/PotasscoSolutions/explanation-director-prototype
 copyright: Copyright &copy; 20245 Potassco
 
 extra_css:
@@ -61,7 +61,7 @@ theme:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/potassco/explanation_directory_prototype
+      link: https://github.com/PotasscoSolutions/explanation-director-prototype
     - icon: potassco-logo
       link: https://potassco.org
   generator: false

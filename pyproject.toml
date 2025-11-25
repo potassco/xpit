@@ -3,7 +3,7 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "explanation_directory_prototype"
+name = "explanation_director_prototype"
 authors = [{ name = "Orkunt Sabuncu", email = "orkunt.sabuncu@potassco.com" },
             { name= "Christoph Glinzer", email = "christoph.glinzer@potassco.com"}]
 description = "A template project."
@@ -25,10 +25,10 @@ lint_pylint = ["pylint"]
 typecheck = ["types-setuptools", "mypy"]
 test = ["coverage[toml]", "pytest>=8.3.4",]
 doc = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "mkdoclingo"]
-dev = ["explanation_directory_prototype[test,typecheck,lint_pylint]"]
+dev = ["explanation_director_prototype[test,typecheck,lint_pylint]"]
 
 [project.scripts]
-explanation_directory_prototype = "explanation_directory_prototype.__main__:main"
+explanation_director_prototype = "explanation_director_prototype.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -71,8 +71,8 @@ variable-rgx = "^[a-z][a-z0-9]*((_[a-z0-9]+)*_?)?$"
 good-names = ["_"]
 
 [tool.coverage.run]
-source = ["explanation_directory_prototype", "tests"]
-omit = ["*/explanation_directory_prototype/__main__.py"]
+source = ["explanation_director_prototype", "tests"]
+omit = ["*/explanation_director_prototype/__main__.py"]
 
 [tool.coverage.report]
 exclude_lines = ["assert", "nocoverage"]

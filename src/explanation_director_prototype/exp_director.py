@@ -27,9 +27,10 @@ from clingo.ast import (
 from clingo.backend import Observer
 from clingo.symbol import parse_term
 
-from explanation_directory_prototype.utils.logging import get_logger
+from explanation_director_prototype.utils.logging import get_logger
 
 log = get_logger("main")
+
 
 class ExplanationTransformer(Transformer):
     """
@@ -79,9 +80,9 @@ class ExpObserver(Observer):
     #     """Called when a rule is added to the program."""
     #     pass
 
-    def theory_term_string(self, term_id: int, name: str) -> None:
-        """Called when a theory term string is encountered."""
-        print(term_id, name)
+    # def theory_term_string(self, term_id: int, name: str) -> None:
+    #     """Called when a theory term string is encountered."""
+    #     print(term_id, name)
 
 
 class ExpDirectorProto(Application):
@@ -190,7 +191,7 @@ class ExpDirectorProto(Application):
         self._create_assumption_budget(control, self._num_of_assumptions)
 
         if not files:
-            files = ["-"]
+            files = ["-"]  # nocoverage
 
         with ProgramBuilder(control) as bld:
             fr = ExplanationTransformer(self._explainables)
@@ -211,5 +212,5 @@ class ExpDirectorProto(Application):
             log.debug("Minimal core %d:\n%s", i, core_as_str)
 
 
-if __name__ == "__main__":
-    sys.exit(int(clingo_main(ExpDirectorProto(), sys.argv[1:])))
+if __name__ == "__main__":  # TODO: remove this at some point
+    sys.exit(int(clingo_main(ExpDirectorProto(), sys.argv[1:])))  # nocoverage
