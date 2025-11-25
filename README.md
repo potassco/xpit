@@ -48,10 +48,10 @@ python src/exp_director.py <encoding_file1.lp > ... <encoding_file_n.lp >  --ass
 
 One example is given in the resources: To run it, specify use the following
 command: Together with the explanation director, there is an encoding given.
-You can run this with the following command:
+You can run this with the following command (--outf=3 mutes the clingo prints):
 
 ```sh
-python src/explanation_director_prototype/exp_director.py resources/eventschedule_orig.lp resources/art_event_orig.lp --assumpt-num=10
+python src/explanation_director_prototype/exp_director.py resources/eventschedule_orig.lp resources/art_event_orig.lp --assumpt-num=10 --outf=3
 ```
 
 Instructions to install and use `nox` can be found in
