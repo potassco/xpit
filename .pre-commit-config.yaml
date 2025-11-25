@@ -1,0 +1,79 @@
+exclude: 'noxfile\.py$'
+
+repos:
+  - repo: https://github.com/myint/autoflake
+    rev: v2.3.1
+    hooks:
+    - id: autoflake
+      args: ["--in-place",  "--imports=explanation_director_prototype", "--ignore-init-module-imports", "--remove-unused-variables"]
+      exclude: ^.github/
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+    - id: end-of-file-fixer
+    - id: trailing-whitespace
+      exclude: ^.github/
+
+  - repo: https://github.com/pycqa/isort
+    rev: 7.0.0
+    hooks:
+      - id: isort
+        exclude: ^.github/
+
+  - repo: https://github.com/psf/black
+    rev: 25.11.0
+    hooks:
+    - id: black
+      exclude: ^.github/
+
+  - repo: https://github.com/executablebooks/mdformat
+    rev: 1.0.0
+    hooks:
+    - id: mdformat
+      args: ["--wrap", "79"]
+      exclude: ^docs/
+      additional_dependencies:
+      - mdformat-gfm
+
+  - repo: https://github.com/pylint-dev/pylint
+    rev: v4.0.3
+    hooks:
+      - id: pylint
+        name: pylint
+        entry: pylint
+        language: system
+        require_serial: true
+        types: [python]
+        args: [--disable=W0511]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.18.2
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: mypy
+        language: system
+        types: [python]
+        args: [".", "--untyped-calls-exclude=sympy"]
+        pass_filenames: false
+        always_run: true
+
+  - repo: local
+
+    hooks:
+      - id: coverage
+        name: coverage
+        entry: coverage
+        language: system
+        pass_filenames: false
+        always_run: true
+        args: [run, -m, pytest]
+
+      - id: coverage-report
+        name: coverage-report
+        entry: coverage
+        language: system
+        pass_filenames: false
+        always_run: true
+        args: [report, -m, --fail-under=100]
