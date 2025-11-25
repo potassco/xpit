@@ -77,12 +77,3 @@ repos:
         pass_filenames: false
         always_run: true
         args: [report, -m, --fail-under=100]
-
-      - id: mkdocs
-        name: mkdocs
-        entry: mkdocs
-        args: ['build', '-c']
-        language: python
-        require_serial: true
-        always_run: true
-        pass_filenames: false
