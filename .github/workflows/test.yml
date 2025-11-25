@@ -28,7 +28,7 @@ jobs:
       run: python -m pip install nox pre-commit
 
     - name: Install dependencies
-      run: pip install .[typecheck,test]
+      run: pip install .[typecheck,test,lint_pylint]
 
     - name: run pre-commit
       if: ${{ matrix.os == 'ubuntu-latest' }}
