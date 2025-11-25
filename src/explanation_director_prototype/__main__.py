@@ -31,7 +31,7 @@ def main() -> None:
     log.debug("Input arguments: %s, %s", args, clingo_args)
 
     # Call the clingo main function with the ExpDirectorProto class and input arguments
-    sys.exit(int(clingo_main(ExpDirectorProto(), clingo_args + [f"--assumpt-num={args.assumpt_num}"])))
+    clingo_main(ExpDirectorProto(), clingo_args + [f"--assumpt-num={args.assumpt_num}"])
 
 
 if __name__ == "__main__":

@@ -97,7 +97,8 @@ class ExpDirectorProto(Application):
         self._assumption_budget: list[int] = []
         self._mapping: defaultdict[int, list[SymbolicAtom]] = defaultdict(list)
 
-    def parse_explainables(self, val: str) -> bool:
+    # TODO: so far this functionality is not used/supported. Once used, add tests.
+    def parse_explainables(self, val: str) -> bool:  # nocoverage
         """Parse explainable predicates from a string."""
         preds = val.split()
         for p in preds:
@@ -184,7 +185,8 @@ class ExpDirectorProto(Application):
             else:
                 args = [symbol.arguments[1].arguments[1]]
             return msg.format(*[str(arg) for arg in args])
-        return str(symbol)
+        # unexpected symbol
+        return str(symbol)  # nocoverage
 
     def main(self, control: Control, files: Sequence[str]) -> None:
         """Main function to run the Explanation Director Prototype Application."""
