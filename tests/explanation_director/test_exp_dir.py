@@ -3,7 +3,7 @@
 import re
 
 import pytest
-from clingo import Function, String, Symbol, clingo_main
+from clingo import Function, Number, String, Symbol, clingo_main
 
 from explanation_director_prototype.exp_director import ExpDirectorProto
 from explanation_director_prototype.utils import logging
@@ -50,6 +50,28 @@ class TestExpDir:  # pylint: disable=too-few-public-methods
                     True,
                 ),
                 'Sessions "edu" and "fut" cannot be scheduled without sharing a slot',
+            ),
+            (
+                Function(
+                    "_exp",
+                    [
+                        Function("a_of_x_is_deduced_hence_violating_a_constraint", [], True),
+                        Function("msg", [String("exp depends on value of X={}"), Number(3)], True),
+                    ],
+                    True,
+                ),
+                "exp depends on value of X=3",
+            ),
+            (
+                Function(
+                    "_exp",
+                    [
+                        Function("rule_violates_integrity", [], True),
+                        Function("msg", [String("this rule violates integrity"), Function("", [], True)], True),
+                    ],
+                    True,
+                ),
+                "this rule violates integrity",
             ),
         ],
     )
