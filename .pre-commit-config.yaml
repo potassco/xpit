@@ -22,7 +22,7 @@ repos:
         exclude: ^.github/
 
   - repo: https://github.com/psf/black
-    rev: 25.9.0
+    rev: 25.11.0
     hooks:
     - id: black
       exclude: ^.github/
@@ -36,7 +36,8 @@ repos:
       additional_dependencies:
       - mdformat-gfm
 
-  - repo: local
+  - repo: https://github.com/pylint-dev/pylint
+    rev: v4.0.3
     hooks:
       - id: pylint
         name: pylint
@@ -46,6 +47,9 @@ repos:
         types: [python]
         args: [--disable=W0511]
 
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.18.2
+    hooks:
       - id: mypy
         name: mypy
         entry: mypy
@@ -55,6 +59,9 @@ repos:
         pass_filenames: false
         always_run: true
 
+  - repo: local
+
+    hooks:
       - id: coverage
         name: coverage
         entry: coverage
