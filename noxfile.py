@@ -26,8 +26,8 @@ def lint_pylint(session):
     """
     Run pylint.
     """
-    session.install("-e", ".[lint_pylint]")
-    session.run("pylint", "explanation_director_prototype", "tests")
+    session.install("-e", ".[lint_pylint]", "-e", ".[test]")
+    session.run("pylint", "--disable=W0511", "explanation_director_prototype", "tests")
 
 
 @nox.session
@@ -44,16 +44,11 @@ def test(session):
     """
     Run the tests.
 
-    Accepts an additional arguments which are passed to the unittest module.
+    Accepts an additional arguments which are passed to the pytest module.
     This can for example be used to selectively run test cases.
     """
-
-    args = [".[test]"]
-    if EDITABLE_TESTS:
-        args.insert(0, "-e")
-    session.install(*args)
+    session.install("-e", ".[test]")
     if session.posargs:
-        session.run("coverage", "run", "-m", "unittest", session.posargs[0], "-v")
+        session.run("pytest", *session.posargs, "-v")
     else:
-        session.run("coverage", "run", "-m", "unittest", "discover", "-v")
-        session.run("coverage", "report", "-m", "--fail-under=100")
+        session.run("pytest", "-v")

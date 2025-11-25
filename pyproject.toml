@@ -22,7 +22,7 @@ Homepage = "https://github.com/PotasscoSolutions/explanation-director-prototype.
 [project.optional-dependencies]
 format = ["black", "isort", "autoflake"]
 lint_pylint = ["pylint"]
-typecheck = ["types-setuptools", "mypy>=1.18.0"]
+typecheck = ["types-setuptools", "mypy>=1.18.0", "pytest"]
 test = ["coverage>=7.12.0", "pytest>=8.3.4",]
 doc = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "mkdoclingo"]
 dev = ["explanation_director_prototype[test,typecheck,lint_pylint]"]
