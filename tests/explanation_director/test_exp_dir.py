@@ -23,9 +23,24 @@ class TestExpDir:  # pylint: disable=too-few-public-methods
         )
         assert res == 20  # exit code for search space exhausted
         patterns = [
-            r"Minimal core (?:0|1|2):\nCore literals: \[1\]\nExplanation for assumption 1:\n    exp depends on X=1\n",
-            r"Minimal core (?:0|1|2):\nCore literals: \[2\]\nExplanation for assumption 2:\n    exp depends on X=2\n",
-            r"Minimal core (?:0|1|2):\nCore literals: \[3\]\nExplanation for assumption 3:\n    exp depends on X=3\n",
+            (
+                r"Minimal core (?:0|1|2):\n"
+                r"Core literals: \[1\]\n"
+                r"Explanation for assumption 1:\n"
+                r"    The programming is failing because of a\(1\).\n"
+            ),
+            (
+                r"Minimal core (?:0|1|2):\n"
+                r"Core literals: \[2\]\n"
+                r"Explanation for assumption 2:\n"
+                r"    The programming is failing because of a\(2\).\n"
+            ),
+            (
+                r"Minimal core (?:0|1|2):\n"
+                r"Core literals: \[3\]\n"
+                r"Explanation for assumption 3:\n"
+                r"    The programming is failing because of a\(3\).\n"
+            ),
         ]
         for pattern in patterns:
             assert any(re.search(pattern, msg) for msg in caplog.messages)
