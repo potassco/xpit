@@ -37,10 +37,6 @@ class ExplanationTransformer(Transformer):
     Transformer to modify rules marked for explanation. Marked rules contain a literal of the form
     _explain/2 in their body."""
 
-    def __init__(self, explainables: list[tuple[str, int]]) -> None:
-        """initialize the transformer."""
-        self._explainables = explainables
-
     def visit_Rule(self, ast: AST) -> AST:  # pylint: disable=invalid-name
         """Visit a rule AST node and transform it if it is marked for explanation."""
         is_marked_for_explanation = False
@@ -92,20 +88,9 @@ class ExpDirectorProto(Application):
         """Initialize the Explanation Director Prototype Application."""
         self.program_name = "exp_director"
         self.version = "0.1"
-        self._explainables: list[tuple[str, int]] = []
         self._num_of_assumptions: int = 10
         self._assumption_budget: list[int] = []
         self._mapping: defaultdict[int, list[SymbolicAtom]] = defaultdict(list)
-
-    # TODO: so far this functionality is not used/supported. Once used, add tests.
-    def parse_explainables(self, val: str) -> bool:  # nocoverage
-        """Parse explainable predicates from a string."""
-        preds = val.split()
-        for p in preds:
-            idx = p.find("/")
-            self._explainables.append((p[:idx], int(p[idx + 1 :])))
-        print(self._explainables)
-        return True
 
     def set_number_of_assumptions(self, val: str) -> bool:
         """Set the number of assumptions in the budget."""
@@ -140,18 +125,6 @@ class ExpDirectorProto(Application):
         """Register command-line options for the application."""
         log.debug("Registering options...")
         group = "Explanation director options"
-
-        options.add(
-            group,
-            "explainables",
-            dedent(
-                """\
-                Explainable predicates.
-                """
-            ),
-            self.parse_explainables,
-            argument="<explainables>",
-        )
 
         options.add(
             group,
@@ -196,7 +169,7 @@ class ExpDirectorProto(Application):
             files = ["-"]  # nocoverage
 
         with ProgramBuilder(control) as bld:
-            fr = ExplanationTransformer(self._explainables)
+            fr = ExplanationTransformer()
             parse_files(files, lambda stm: bld.add(fr.visit(stm)))
 
         control.register_observer(ExpObserver())
