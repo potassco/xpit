@@ -4,7 +4,7 @@ import sys
 from collections import defaultdict
 from copy import deepcopy
 from textwrap import dedent
-from typing import Sequence
+from typing import Sequence, Tuple
 
 import clingo.symbol as clisym
 from clingexplaid.mus import CoreComputer
@@ -17,6 +17,7 @@ from clingo.ast import (
     ComparisonOperator,
     ConditionalLiteral,
     Guard,
+    Location,
     ProgramBuilder,
     Rule,
     Sign,
@@ -25,7 +26,7 @@ from clingo.ast import (
     parse_files,
 )
 from clingo.backend import Observer
-from clingo.symbol import parse_term
+from clingo.symbol import Function, Number, String, parse_term
 
 from explanation_director_prototype.utils.logging import get_logger
 
@@ -39,6 +40,11 @@ class ExplanationTransformer(Transformer):
 
     def visit_Rule(self, ast: AST) -> AST:  # pylint: disable=invalid-name
         """Visit a rule AST node and transform it if it is marked for explanation."""
+
+        def parse_location_info(location: Location) -> Tuple[String, Number, Number]:
+            """Parse location information from the AST location."""
+            return String(location.begin.filename), Number(location.begin.line), Number(location.begin.column)
+
         is_marked_for_explanation = False
 
         for lit in ast.body:
@@ -52,6 +58,15 @@ class ExplanationTransformer(Transformer):
                 exp_lit.atom.symbol.name = "_exp"
                 exp_lit.sign = Sign.NoSign
                 is_marked_for_explanation = True
+                # extend arguments with location info
+                # TODO:
+                fun = Function(name="location", arguments=parse_location_info(ast.location))
+                exp_lit.atom.symbol.arguments.append(
+                    SymbolicTerm(
+                        lit.location,
+                        fun,
+                    )
+                )
                 break
 
         if is_marked_for_explanation:
@@ -111,7 +126,7 @@ class ExpDirectorProto(Application):
         log.debug("Setting the assumptions...")
         with ctl.backend() as backend:
             idx = 0
-            for a in ctl.symbolic_atoms.by_signature("_exp", 2):
+            for a in ctl.symbolic_atoms.by_signature("_exp", 3):
                 log.debug("%s %s mapped to %s", a.symbol, a.literal, self._assumption_budget[idx])
                 backend.add_rule(head=[], body=[a.literal, self._assumption_budget[idx]])  # :- _exp(...), assumptionX.
                 backend.add_rule(
@@ -141,12 +156,19 @@ class ExpDirectorProto(Application):
     def core_to_str(self, core: list[int]) -> str:
         """Print the core literals with their corresponding messages."""
         result = ""
-        result += f"Core literals: {core}\n"
+        log.debug("Core literals: %s\n", core)
         for l in core:
             if l in self._mapping:
-                result += f"Explanation for assumption {l}:\n"
+                log.debug("Explanation for assumption %s:\n", l)
                 for a in self._mapping[l]:
-                    result += "    " + self.format_explanation_symbol(a.symbol) + "\n"
+                    result += (
+                        "    "
+                        + self.format_explanation_symbol(a.symbol)
+                        + "\n"
+                        + self.format_error_location(a.symbol)
+                        + "\n"
+                    )
+                    log.debug(result)
         return result
 
     def format_explanation_symbol(self, symbol: clisym.Symbol) -> str:
@@ -160,6 +182,11 @@ class ExpDirectorProto(Application):
             return msg.format(*[str(arg) for arg in args])
         # unexpected symbol
         return str(symbol)  # nocoverage
+
+    def format_error_location(self, symbol: clisym.Symbol) -> str:
+        """Format the location of the rule creating this symbol."""
+        error_location_msg = "This message was caused from rule in file {}, line {}, column {}"
+        return error_location_msg.format(*[str(arg) for arg in symbol.arguments[2].arguments])
 
     def main(self, control: Control, files: Sequence[str]) -> None:
         """Main function to run the Explanation Director Prototype Application."""
