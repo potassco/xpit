@@ -4,11 +4,11 @@ import sys
 from collections import defaultdict
 from copy import deepcopy
 from textwrap import dedent
-from typing import Sequence
+from typing import Optional, Sequence
 
 import clingo.symbol as clisym
 from clingexplaid.mus import CoreComputer
-from clingo import ApplicationOptions, Control, SymbolicAtom, SymbolType
+from clingo import ApplicationOptions, Control, String, SymbolicAtom, SymbolType
 from clingo.application import Application, clingo_main
 from clingo.ast import (
     AST,
@@ -26,6 +26,7 @@ from clingo.ast import (
 )
 from clingo.backend import Observer
 from clingo.symbol import parse_term
+from clingox.ast import location_to_str
 
 from explanation_director_prototype.utils.logging import get_logger
 
@@ -36,6 +37,10 @@ class ExplanationTransformer(Transformer):
     """
     Transformer to modify rules marked for explanation. Marked rules contain a literal of the form
     _explain/2 in their body."""
+
+    def __init__(self) -> None:
+        """Initialize the Explanation Transformer."""
+        self._location_dict: defaultdict[tuple[str, str], list[tuple[int, int, int]]] = defaultdict(list)
 
     def visit_Rule(self, ast: AST) -> AST:  # pylint: disable=invalid-name
         """Visit a rule AST node and transform it if it is marked for explanation."""
@@ -65,8 +70,94 @@ class ExplanationTransformer(Transformer):
                 ),
                 ast.body,
             )
+            self._add_to_location_dict(exp_lit, ast)
+
             return new_rule
         return ast
+
+    def _add_to_location_dict(self, literal, ast) -> None:
+        """Add location info to the location dictionary"""
+        symbol = self._parse_literal(literal)
+        self._location_dict[symbol].append(location_to_str(ast.location))
+
+        # key = self.parse_symbol_arguments(literal)
+        # loc = self.get_location(literal)
+        # self._location_dict[key].append(loc)
+
+    def _parse_ast_dict(self, ast_dict: dict) -> None:
+        """Parse AST dictionary to extract relevant information"""
+        for key, value in ast_dict.items():
+            if key == "ast_type" and value == "Literal":  # root
+                ast_dict.get("atom", {})
+
+    def get_location(self, literal) -> None:
+        """Extract location from literal"""
+        return literal.location
+
+    def _parse_function(self, ast_function) -> clisym.Function:
+        """Parse function arguments from AST function dictionary"""
+        args = []
+        for arg in ast_function.arguments:
+            parsed_arg = self._parse_term(arg)
+            if parsed_arg is not None:
+                args.append(parsed_arg)
+
+        return clisym.Function(ast_function.name, args, True)
+
+    def _parse_literal(self, ast_literal) -> clisym.Symbol:
+
+        if ast_literal.atom.ast_type == ASTType.SymbolicAtom:
+            return self._parse_symbolic_atom(ast_literal.atom)
+        raise NotImplementedError("Only SymbolicAtom supported in _explain.")
+
+    def _parse_symbolic_atom(self, ast_symbolic_atom) -> Optional[clisym.Symbol]:
+        return self._parse_term(ast_symbolic_atom.symbol)
+
+    def _parse_term(self, ast_term) -> Optional[clisym.Symbol]:
+        if ast_term.ast_type == ASTType.Function:
+            return self._parse_function(ast_term)
+        if ast_term.ast_type == ASTType.SymbolicTerm:
+            return self._parse_symbolic_term(ast_term)
+        if ast_term.ast_type == ASTType.Variable:
+            return String("{}")  # Placeholder for variable handling
+        if ast_term.ast_type == ASTType.UnaryOperation:
+            raise NotImplementedError("UnaryOperation in _explain not supported yet.")
+        if ast_term.ast_type == ASTType.BinaryOperation:
+            raise NotImplementedError("BinaryOperation in _explain not supported yet.")
+        if ast_term.ast_type == ASTType.Interval:
+            raise NotImplementedError("Interval in _explain not supported yet.")
+        if ast_term.ast_type == ASTType.Pool:
+            raise NotImplementedError("Pool in _explain not supported yet.")
+
+    def _parse_symbolic_term(self, ast_symbolic_term) -> clisym.Symbol:
+        return ast_symbolic_term.symbol
+
+    def _parse_variable(self, ast_variable) -> None:
+        pass
+
+    def parse_symbol_arguments(self, literal):
+        """Parse a symbol to extract its arguments."""
+        assert literal.ast_type == ASTType.Literal
+        symbol = literal.atom.symbol
+        assert symbol.ast_type == ASTType.Function
+        assert symbol.name == "_exp"
+        for arg in symbol.arguments:
+            if arg.ast_type == ASTType.Function:
+                pass
+            if arg.ast_type == ASTType.SymbolicTerm:
+                arg_symbol = arg.symbol
+                assert arg_symbol.ast_type == ASTType.Function
+                arg_symbol.name
+                if arg_symbol.arguments:
+                    pass  # TODO: what happens to (possible) arguments? or to a strange inner structure? _exp((xxx, yyy), "msg")?
+
+        if literal.type == SymbolType.Function:
+            return (literal.name, len(literal.arguments))
+        return (str(literal), 0)  # nocoverage
+
+    def get_location_dict(self) -> dict:
+        """Get the location dictionary."""
+        return self._location_dict
 
 
 class ExpObserver(Observer):
@@ -91,6 +182,7 @@ class ExpDirectorProto(Application):
         self._num_of_assumptions: int = 10
         self._assumption_budget: list[int] = []
         self._mapping: defaultdict[int, list[SymbolicAtom]] = defaultdict(list)
+        self._loc_mapping: defaultdict[SymbolicAtom, list[str]] = defaultdict(list)
 
     def set_number_of_assumptions(self, val: str) -> bool:
         """Set the number of assumptions in the budget."""
@@ -147,6 +239,7 @@ class ExpDirectorProto(Application):
                 result += f"Explanation for assumption {l}:\n"
                 for a in self._mapping[l]:
                     result += "    " + self.format_explanation_symbol(a.symbol) + "\n"
+                    result += "    Location(s): " + ", ".join(self._loc_mapping[a.symbol]) + "\n"
         return result
 
     def format_explanation_symbol(self, symbol: clisym.Symbol) -> str:
@@ -160,6 +253,49 @@ class ExpDirectorProto(Application):
             return msg.format(*[str(arg) for arg in args])
         # unexpected symbol
         return str(symbol)  # nocoverage
+
+    def _is_instanciation_of_rec(self, symbol: clisym.Symbol, schema: clisym.Symbol) -> bool:
+        """Check if a symbol is an instanciation of a given schema."""
+        if schema.type == SymbolType.Function:
+            if (
+                symbol.type != SymbolType.Function
+                or symbol.name != schema.name
+                or len(symbol.arguments) != len(schema.arguments)
+            ):
+                return False
+            for sym_arg, schema_arg in zip(symbol.arguments, schema.arguments):
+                if not self._is_instanciation_of_rec(sym_arg, schema_arg):
+                    return False
+            return True
+        if schema.type == SymbolType.String:
+            return (
+                schema.string == "{}"  # wildcard for Variables
+                or symbol.type == SymbolType.String
+                and schema.string == symbol.string
+            )
+        if schema.type == SymbolType.Number:
+            return symbol.type == SymbolType.Number and schema.number == symbol.number
+        return schema.type == symbol.type
+
+    def _is_instanciation_of(self, symbol: clisym.Symbol, schema: clisym.Symbol) -> bool:
+        assert symbol.name == "_exp", "Only _exp symbols are supported."
+        assert len(symbol.arguments) == 2, "_exp symbols must have exactly two arguments."
+        if symbol.name != schema.name or len(symbol.arguments) != len(schema.arguments) or symbol.type != schema.type:
+            return False
+        for sym_arg, schema_arg in zip(symbol.arguments, schema.arguments):
+            if not self._is_instanciation_of_rec(sym_arg, schema_arg):
+                return False
+        return True
+
+    def _add_location_to_mapping(self, location_dict: dict) -> None:
+        """Add location information to the mapping."""
+        for literal, atoms in self._mapping.items():
+            for atom in atoms:
+                for symbol_schema, locs in location_dict.items():
+                    if self._is_instanciation_of(atom.symbol, symbol_schema):
+                        log.debug("Mapping literal %d to location %s", literal, locs)
+                        # Here we could store the locations in a more structured way if needed
+                        self._loc_mapping[atom.symbol] = locs
 
     def main(self, control: Control, files: Sequence[str]) -> None:
         """Main function to run the Explanation Director Prototype Application."""
@@ -175,6 +311,9 @@ class ExpDirectorProto(Application):
         control.register_observer(ExpObserver())
         control.ground([("base", [])])
         self._use_assumption_budget(control)
+
+        # TODO: bring _mapping and fr._location_dict together?
+        self._add_location_to_mapping(fr.get_location_dict())
 
         # convert assumption budget for CoreComputer
         cc = CoreComputer(control, self._assumption_budget)
