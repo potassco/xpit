@@ -8,7 +8,7 @@ from typing import Sequence
 
 import clingo.symbol as clisym
 from clingexplaid.mus import CoreComputer
-from clingo import ApplicationOptions, Control, SymbolicAtom, SymbolType
+from clingo import ApplicationOptions, Control, Flag, SymbolicAtom, SymbolType
 from clingo.application import Application, clingo_main
 from clingo.ast import (
     AST,
@@ -25,7 +25,8 @@ from clingo.ast import (
     parse_files,
 )
 from clingo.backend import Observer
-from clingo.symbol import parse_term
+from clingo.symbol import String, parse_term
+from clingox.ast import location_to_str
 
 from explanation_director_prototype.utils.logging import get_logger
 
@@ -37,8 +38,12 @@ class ExplanationTransformer(Transformer):
     Transformer to modify rules marked for explanation. Marked rules contain a literal of the form
     _explain/2 in their body."""
 
+    def __init__(self, debug: bool = False) -> None:
+        self.debug = debug
+
     def visit_Rule(self, ast: AST) -> AST:  # pylint: disable=invalid-name
         """Visit a rule AST node and transform it if it is marked for explanation."""
+
         is_marked_for_explanation = False
 
         for lit in ast.body:
@@ -52,6 +57,10 @@ class ExplanationTransformer(Transformer):
                 exp_lit.atom.symbol.name = "_exp"
                 exp_lit.sign = Sign.NoSign
                 is_marked_for_explanation = True
+                if self.debug:
+                    exp_lit.atom.symbol.arguments.append(
+                        SymbolicTerm(lit.location, String(location_to_str(ast.location)))
+                    )
                 break
 
         if is_marked_for_explanation:
@@ -91,6 +100,12 @@ class ExpDirectorProto(Application):
         self._num_of_assumptions: int = 10
         self._assumption_budget: list[int] = []
         self._mapping: defaultdict[int, list[SymbolicAtom]] = defaultdict(list)
+        self._debug = Flag(False)
+
+    @property
+    def _exp_arity(self) -> int:
+        """Return the arity of the _exp predicate."""
+        return 3 if self._debug else 2
 
     def set_number_of_assumptions(self, val: str) -> bool:
         """Set the number of assumptions in the budget."""
@@ -111,7 +126,7 @@ class ExpDirectorProto(Application):
         log.debug("Setting the assumptions...")
         with ctl.backend() as backend:
             idx = 0
-            for a in ctl.symbolic_atoms.by_signature("_exp", 2):
+            for a in ctl.symbolic_atoms.by_signature("_exp", self._exp_arity):
                 log.debug("%s %s mapped to %s", a.symbol, a.literal, self._assumption_budget[idx])
                 backend.add_rule(head=[], body=[a.literal, self._assumption_budget[idx]])  # :- _exp(...), assumptionX.
                 backend.add_rule(
@@ -138,15 +153,32 @@ class ExpDirectorProto(Application):
             argument="<num-of-assumptions>",
         )
 
+        options.add_flag(
+            group,
+            "debug",
+            dedent(
+                """\
+                Enable debug mode (i.e. additional pointers to source code).
+                """
+            ),
+            target=self._debug,
+        )
+
     def core_to_str(self, core: list[int]) -> str:
         """Print the core literals with their corresponding messages."""
         result = ""
-        result += f"Core literals: {core}\n"
+        log.debug("Core literals: %s\n", core)
         for l in core:
             if l in self._mapping:
-                result += f"Explanation for assumption {l}:\n"
+                log.debug("Explanation for assumption %s:\n", l)
                 for a in self._mapping[l]:
-                    result += "    " + self.format_explanation_symbol(a.symbol) + "\n"
+                    result += (
+                        "    "
+                        + self.format_explanation_symbol(a.symbol)
+                        + "\n"
+                        + (self.format_error_location(a.symbol) + "\n" if self._debug else "")
+                    )
+                    log.debug(result)
         return result
 
     def format_explanation_symbol(self, symbol: clisym.Symbol) -> str:
@@ -159,7 +191,11 @@ class ExpDirectorProto(Application):
                 args = [symbol.arguments[1].arguments[1]]
             return msg.format(*[str(arg) for arg in args])
         # unexpected symbol
-        return str(symbol)  # nocoverage
+        return str(symbol)  # not expected to happen # nocoverage
+
+    def format_error_location(self, symbol: clisym.Symbol) -> str:
+        """Format the location of the rule creating this symbol."""
+        return f"        location: {symbol.arguments[2].string}"
 
     def main(self, control: Control, files: Sequence[str]) -> None:
         """Main function to run the Explanation Director Prototype Application."""
@@ -169,7 +205,7 @@ class ExpDirectorProto(Application):
             files = ["-"]  # nocoverage
 
         with ProgramBuilder(control) as bld:
-            fr = ExplanationTransformer()
+            fr = ExplanationTransformer(bool(self._debug))
             parse_files(files, lambda stm: bld.add(fr.visit(stm)))
 
         control.register_observer(ExpObserver())
