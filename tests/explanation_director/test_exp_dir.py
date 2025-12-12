@@ -23,23 +23,37 @@ class TestExpDir:  # pylint: disable=too-few-public-methods
         )
         assert res == 20  # exit code for search space exhausted
         patterns = [
+            r"Minimal core (?:0|1|2):\n    The programming is failing because of a\(1\).",
+            r"Minimal core (?:0|1|2):\n    The programming is failing because of a\(2\).",
+            r"Minimal core (?:0|1|2):\n    The programming is failing because of a\(3\).",
+        ]
+        for pattern in patterns:
+            assert any(re.search(pattern, msg) for msg in caplog.messages)
+
+    def test_debug_mode(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Test the ExplanationDirector's debug mode."""
+        caplog.set_level(logging.DEBUG, logger="main")
+        file_path = TEST_DIR.joinpath("res/not_a_of_x.lp")
+        res = clingo_main(
+            application=ExpDirectorProto(),
+            arguments=[str(file_path.as_posix()), "--assumpt-num=5", "--debug", "--outf=3"],
+        )
+        assert res == 20  # exit code for search space exhausted
+        patterns = [
             (
                 r"Minimal core (?:0|1|2):\n"
-                r"Core literals: \[1\]\n"
-                r"Explanation for assumption 1:\n"
-                r"    The programming is failing because of a\(1\).\n"
-            ),
-            (
-                r"Minimal core (?:0|1|2):\n"
-                r"Core literals: \[2\]\n"
-                r"Explanation for assumption 2:\n"
-                r"    The programming is failing because of a\(2\).\n"
-            ),
-            (
-                r"Minimal core (?:0|1|2):\n"
-                r"Core literals: \[3\]\n"
-                r"Explanation for assumption 3:\n"
                 r"    The programming is failing because of a\(3\).\n"
+                r"        location: .+not_a_of_x.lp:1:1-2:58+"
+            ),
+            (
+                r"Minimal core (?:0|1|2):\n"
+                r"    The programming is failing because of a\(2\).\n"
+                r"        location: .+not_a_of_x.lp:1:1-2:58+"
+            ),
+            (
+                r"Minimal core (?:0|1|2):\n"
+                r"    The programming is failing because of a\(1\).\n"
+                r"        location: .+not_a_of_x.lp:1:1-2:58+"
             ),
         ]
         for pattern in patterns:

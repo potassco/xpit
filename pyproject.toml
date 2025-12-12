@@ -13,7 +13,8 @@ dynamic = ["version"]
 readme = "README.md"
 dependencies = [
     "clingexplaid>=1.4.0",
-    "clingo>=5.8,<6.0"
+    "clingo>=5.8,<6.0",
+    "clingox>=1.2.1"
 ]
 
 [project.urls]
