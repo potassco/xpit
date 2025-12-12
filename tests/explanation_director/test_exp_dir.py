@@ -110,3 +110,13 @@ class TestExpDir:  # pylint: disable=too-few-public-methods
         # Test with a symbol of type Function and name "_exp"
         symbol_explanation = director.format_explanation_symbol(symbol)
         assert symbol_explanation == expected
+
+    @pytest.mark.parametrize(
+        "strategy, is_valid", [("powerset", True), ("asp", True), ("AsP", True), ("invalid_strategy", False)]
+    )
+    def test_set_explorer_strategy(self, strategy: str, is_valid: bool, caplog: pytest.LogCaptureFixture) -> None:
+        """Test setting an invalid explorer strategy raises ValueError."""
+        director = ExpDirectorProto()
+        assert director.set_explorer_strategy(strategy) is is_valid
+        if not is_valid:
+            assert "Invalid explorer strategy" in caplog.text

@@ -8,6 +8,7 @@ from typing import Sequence
 
 import clingo.symbol as clisym
 from clingexplaid.mus import CoreComputer
+from clingexplaid.mus.explorers import Explorer, ExplorerAsp, ExplorerPowerset
 from clingo import ApplicationOptions, Control, Flag, SymbolicAtom, SymbolType
 from clingo.application import Application, clingo_main
 from clingo.ast import (
@@ -101,6 +102,7 @@ class ExpDirectorProto(Application):
         self._assumption_budget: list[int] = []
         self._mapping: defaultdict[int, list[SymbolicAtom]] = defaultdict(list)
         self._debug = Flag(False)
+        self._explorer_strategy: type[Explorer] = ExplorerPowerset
 
     @property
     def _exp_arity(self) -> int:
@@ -110,6 +112,16 @@ class ExpDirectorProto(Application):
     def set_number_of_assumptions(self, val: str) -> bool:
         """Set the number of assumptions in the budget."""
         self._num_of_assumptions = int(val)
+        return True
+
+    def set_explorer_strategy(self, val: str) -> bool:
+        """Set the explorer strategy."""
+        if val.lower() not in ["powerset", "asp"]:
+            log.error("Invalid explorer strategy: %s. Choose 'powerset' or 'asp'.", val)
+            return False
+        if val.lower() == "asp":
+            log.debug("Using ASP-based explorer strategy.")
+            self._explorer_strategy = ExplorerAsp
         return True
 
     def _create_assumption_budget(self, ctl: Control, num: int) -> None:
@@ -151,6 +163,18 @@ class ExpDirectorProto(Application):
             ),
             self.set_number_of_assumptions,
             argument="<num-of-assumptions>",
+        )
+
+        options.add(
+            group,
+            "explorer",
+            dedent(
+                """\
+                Chose explorer strategy: 'powerset' (default) or 'asp'.
+                """
+            ),
+            self.set_explorer_strategy,
+            argument="<explorer-strategy>",
         )
 
         options.add_flag(
@@ -213,7 +237,7 @@ class ExpDirectorProto(Application):
         self._use_assumption_budget(control)
 
         # convert assumption budget for CoreComputer
-        cc = CoreComputer(control, self._assumption_budget)
+        cc = CoreComputer(control, self._assumption_budget, explorer=self._explorer_strategy)
         mus_generator = cc.get_multiple_minimal()
         for i, mus in enumerate(mus_generator):
             min_unsat_set = [a.literal for a in mus.assumptions]  # we ignore the sign here (since all are positive)
