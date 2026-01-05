@@ -1,38 +1,15 @@
 from typing import List
 import math
-from dataclasses import dataclass
 
 import clingo
 from clingo.symbol import Function
-from clingo.symbolic_atoms import SymbolicAtom
 
 from clingexplaid.mus import CoreComputer
 from clingexplaid.mus.explorers import ExplorerPowerset
 
 # from ..explainer import Explainer
 import xpit.explainer as explainer
-
-
-@dataclass
-class EUnit:
-    """
-    Container class for the Explanation Unit (eunit)
-    """
-
-    assumption_literal: int = 0
-
-    def __hash__(self):
-        return hash(self.assumption_literal)
-
-
-@dataclass
-class ExpPortion:
-    """
-    Container class for the explainable portion
-    """
-
-    id_: str
-    exp_atom: SymbolicAtom
+from ..definitions import EUnit, ExpPortion
 
 
 class ExpDirector:
@@ -51,11 +28,11 @@ class ExpDirector:
 
     def setup_before_grounding(self) -> None:
         for exp in self.explainers:
-            print(exp.setup_before_grounding())
+            exp.setup_before_grounding()
 
     def _find_eunit_for_assumption_literal(self, assumption_lit: int) -> EUnit:
         for eunit in self.eunits:
-            if eunit.assumption_literal == assumption_lit:
+            if eunit.assumption_lit == assumption_lit:
                 return eunit
 
     def _create_eunits(self) -> None:
@@ -63,7 +40,7 @@ class ExpDirector:
             for i in range(self.maximum_number_of_eunits):
                 sym = Function("_eunit" +  str(i+1))
                 atm = backend.add_atom(sym)
-                self.eunits.append(EUnit(assumption_literal=atm))
+                self.eunits.append(EUnit(assumption_lit=atm))
                 backend.add_rule(head=[atm], choice=True)
 
     def _distribute_eunits_equally(self) -> List[int]:
@@ -89,7 +66,7 @@ class ExpDirector:
             start += distribution[idx]
 
     def compute_minimal_core_eunits(self):
-        cc = CoreComputer(self.control, [eu.assumption_literal for eu in self.eunits], ExplorerPowerset)
+        cc = CoreComputer(self.control, [eu.assumption_lit for eu in self.eunits], ExplorerPowerset)
         mus_generator = cc.get_multiple_minimal()
         for mus in mus_generator:
             minimal_core_eunits = [self._find_eunit_for_assumption_literal(a.literal) for a in mus.assumptions]

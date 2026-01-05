@@ -1,5 +1,5 @@
 """
-Explanation director module
+Explanation director package
 """
 
 from .director import ExpDirector

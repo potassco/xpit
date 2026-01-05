@@ -3,7 +3,7 @@ ASP Program based explainer
 """
 
 from pathlib import Path
-from typing import Sequence, Union, List
+from typing import Sequence, Union, List, Dict
 from copy import deepcopy
 
 from clingo.ast import ASTType, Rule, Aggregate, Guard, SymbolicTerm, ConditionalLiteral, ComparisonOperator, Sign, Transformer, ProgramBuilder, parse_files
@@ -14,6 +14,7 @@ from clorm import FactBase
 from xpit import director
 
 from .base import Explainer
+from ..definitions import EUnit, ExpPortion
 
 class ExpPortionTransformer(Transformer):
     """
@@ -39,7 +40,7 @@ class ExpPortionTransformer(Transformer):
                 exp_lit.sign = Sign.NoSign
                 is_marked_for_explanation = True
                 self.exp_portion_ids.append(str(lit.atom.symbol.arguments[0]))
-                print("Explainable portion in rule", ast)
+                # print("Explainable portion in rule", ast)
                 break
 
         if is_marked_for_explanation:
@@ -79,7 +80,7 @@ class ProgramExplainer(Explainer):
         super().__init__(director)
         self.lp_files = lp_files
         self._exp_portion_ids: set[str] = None
-        self._binding: Dict[director.director.EUnit, List[director.director.ExpPortion]] = {}
+        self._binding: Dict[EUnit, List[ExpPortion]] = {}
 
     def add_lp_files(self, lp_files: Union[str, Path]) -> None:
         self.lp_files.extend(lp_files)
@@ -98,6 +99,8 @@ class ProgramExplainer(Explainer):
         return self._fo_transformations()
 
     def assign_eunit_budget(self, eunits: List[director.director.EUnit]) -> None:
+        print("~"*40)
+        print("Program-based explainer")
         print("ExpPortion ids:", self._exp_portion_ids)
         print("EUnits:", eunits)
         with self.control.backend() as backend:
@@ -105,10 +108,10 @@ class ProgramExplainer(Explainer):
             for a in self.control.symbolic_atoms.by_signature("_exp",2):
                 if str(a.symbol.arguments[0]) not in self._exp_portion_ids:
                     continue
-                exp_por = director.director.ExpPortion(id_=a.symbol.arguments[0], exp_atom=a)
-                print(exp_por)
-                backend.add_rule(head=[], body=[a.literal, eunits[idx].assumption_literal])
-                backend.add_rule(head=[a.literal], body=[-1*eunits[idx].assumption_literal], choice=False)
+                exp_por = director.director.ExpPortion(id_=str(a.symbol.arguments[0]), exp_atom=a)
+                # print(exp_por)
+                backend.add_rule(head=[], body=[a.literal, eunits[idx].assumption_lit])
+                backend.add_rule(head=[a.literal], body=[-1*eunits[idx].assumption_lit], choice=False)
                 if eunits[idx] in self._binding:
                     self._binding[eunits[idx]].append(exp_por)
                 else:

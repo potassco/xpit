@@ -11,6 +11,8 @@ import clingo
 # TODO: check for a better way of handling circular imports in Python
 import xpit.director as director
 
+from ..definitions import EUnit, ExpPortion
+
 class Explainer(ABC):
     """
     Abstract Explainer class
@@ -25,9 +27,9 @@ class Explainer(ABC):
         pass
 
     @abstractmethod
-    def assign_eunit_budget(self, eunits: List[director.director.EUnit]) -> None:
+    def assign_eunit_budget(self, eunits: List[EUnit]) -> None:
         pass
 
     @abstractmethod
-    def get_exp_portions(self, eunit: director.director.EUnit) -> List[director.director.ExpPortion]:
+    def get_exp_portions(self, eunit: EUnit) -> List[ExpPortion]:
         pass
