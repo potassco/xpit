@@ -59,6 +59,7 @@ class ExpDirector:
         return dist
 
     def setup_before_solving(self) -> None:
+        self._create_eunits()
         distribution = self._distribute_eunits_equally()
         start = 0
         for idx, exp in enumerate(self.explainers):

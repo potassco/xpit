@@ -16,8 +16,6 @@ expdir.setup_before_grounding()
 
 ctl.ground([("base",[])])
 
-expdir._create_eunits()
-
 expdir.setup_before_solving()
 
 for core in expdir.compute_minimal_core_eunits():
