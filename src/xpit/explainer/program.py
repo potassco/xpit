@@ -14,7 +14,8 @@ from clorm import FactBase
 from xpit import director
 
 from .base import Explainer
-from ..definitions import EUnit, ExpPortion
+from ..definitions import ExplanationUnit as EUnit
+from ..definitions import ExplainablePortion as EPortion
 
 class ExpPortionTransformer(Transformer):
     """
@@ -63,6 +64,7 @@ class ExpPortionTransformer(Transformer):
                 ),
                 ast.body,
             )
+            # print(new_rule)
             return new_rule
         return ast
 
@@ -75,12 +77,12 @@ class ProgramExplainer(Explainer):
     """
 
     def __init__(
-        self, director: director.ExpDirector, lp_files: Sequence[Union[str, Path]]
+        self, director: director.ExplanationDirector, lp_files: Sequence[Union[str, Path]]
     ) -> None:
         super().__init__(director)
         self.lp_files = lp_files
         self._exp_portion_ids: set[str] = None
-        self._binding: Dict[EUnit, List[ExpPortion]] = {}
+        self._binding: Dict[EUnit, List[EPortion]] = {}
 
     def add_lp_files(self, lp_files: Union[str, Path]) -> None:
         self.lp_files.extend(lp_files)
@@ -98,7 +100,7 @@ class ProgramExplainer(Explainer):
     def setup_before_grounding(self) -> int:
         return self._fo_transformations()
 
-    def assign_eunit_budget(self, eunits: List[director.director.EUnit]) -> None:
+    def assign_eunit_budget(self, eunits: List[EUnit]) -> None:
         print("~"*40)
         print("Program-based explainer")
         print("ExpPortion ids:", self._exp_portion_ids)
@@ -106,11 +108,14 @@ class ProgramExplainer(Explainer):
         with self.control.backend() as backend:
             idx = 0
             for a in self.control.symbolic_atoms.by_signature("_exp",2):
+                print("ground exp atom",a.symbol)
                 if str(a.symbol.arguments[0]) not in self._exp_portion_ids:
                     continue
-                exp_por = director.director.ExpPortion(id_=str(a.symbol.arguments[0]), exp_atom=a)
+                exp_por = EPortion(id_=str(a.symbol.arguments[0]), exp_atom=a)
                 # print(exp_por)
+                # :- _exp(...), eunit.
                 backend.add_rule(head=[], body=[a.literal, eunits[idx].assumption_lit])
+                # _exp(...) :- not eunit.
                 backend.add_rule(head=[a.literal], body=[-1*eunits[idx].assumption_lit], choice=False)
                 if eunits[idx] in self._binding:
                     self._binding[eunits[idx]].append(exp_por)
@@ -119,7 +124,7 @@ class ProgramExplainer(Explainer):
                 if idx+1 < len(eunits):
                     idx += 1
 
-    def get_exp_portions(self, eunit: director.director.EUnit) -> List[director.director.ExpPortion]:
+    def get_explainable_portions(self, eunit: EUnit) -> List[EPortion]:
         if eunit not in self._binding:
             return []
         else:

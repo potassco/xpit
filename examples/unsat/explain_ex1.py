@@ -5,18 +5,18 @@ from xpit.explainer import ProgramExplainer
 
 ctl = clingo.Control()
 
-expdir = ExplanationDirector(ctl, 20)
-pe_encoding = ProgramExplainer(director = expdir, lp_files = ["eventschedule.lp"])
-pe_instance = ProgramExplainer(director = expdir, lp_files = ["art_event.lp"])
+expdir = ExplanationDirector(ctl, 2)
+pe_encoding = ProgramExplainer(director = expdir, lp_files = ["simple.lp"])
 
 expdir.register_explainer(pe_encoding)
-expdir.register_explainer(pe_instance)
 
 expdir.setup_before_grounding()
 
 ctl.ground([("base",[])])
 
 expdir.setup_before_solving()
+
+print(pe_encoding._binding)
 
 for core in expdir.compute_minimal_core_eunits():
     print("\n")

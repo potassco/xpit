@@ -2,8 +2,8 @@
 Explanation director package
 """
 
-from .director import ExpDirector
+from .director import ExplanationDirector
 
 __all__ = [
-    "ExpDirector",
+    "ExplanationDirector",
 ]

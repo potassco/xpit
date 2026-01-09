@@ -7,21 +7,21 @@ from dataclasses import dataclass
 from clingo.symbolic_atoms import SymbolicAtom
 
 @dataclass
-class EUnit:
+class ExplanationUnit:
     """
     Container class for the Explanation Unit (eunit)
     """
 
-    assumption_lit: int = 0
+    assumption_lit: int
 
     def __hash__(self):
         return hash(self.assumption_lit)
 
 
 @dataclass
-class ExpPortion:
+class ExplainablePortion:
     """
-    Container class for the explainable portion
+    Container class for the Explainable Portion
     """
 
     id_: str

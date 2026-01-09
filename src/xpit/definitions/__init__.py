@@ -2,10 +2,10 @@
 Data classes package
 """
 
-from .define import EUnit
-from .define import ExpPortion
+from .define import ExplanationUnit
+from .define import ExplainablePortion
 
 __all__ = [
-    "EUnit",
-    "ExpPortion"
+    "ExplanationUnit",
+    "ExplainablePortion"
 ]

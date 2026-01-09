@@ -9,10 +9,11 @@ from clingexplaid.mus.explorers import ExplorerPowerset
 
 # from ..explainer import Explainer
 import xpit.explainer as explainer
-from ..definitions import EUnit, ExpPortion
+from ..definitions import ExplanationUnit as EUnit
+from ..definitions import ExplainablePortion as EPortion
 
 
-class ExpDirector:
+class ExplanationDirector:
     """
     Explanation Director class that manages explainer modules and allocates an eunit budget.
     """
@@ -73,11 +74,11 @@ class ExpDirector:
             minimal_core_eunits = [self._find_eunit_for_assumption_literal(a.literal) for a in mus.assumptions]
             yield minimal_core_eunits
 
-    def compute_explanation(self, core: List[EUnit]) -> List[ExpPortion]:
+    def compute_explanation(self, core: List[EUnit]) -> List[EPortion]:
         explanation = []
         for eu in core:
             for exp in self.explainers:
-                exp_portions = exp.get_exp_portions(eu)
+                exp_portions = exp.get_explainable_portions(eu)
                 if exp_portions:
                     explanation.extend(exp_portions)
                     break

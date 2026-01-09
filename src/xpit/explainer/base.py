@@ -11,14 +11,15 @@ import clingo
 # TODO: check for a better way of handling circular imports in Python
 import xpit.director as director
 
-from ..definitions import EUnit, ExpPortion
+from ..definitions import ExplanationUnit as EUnit
+from ..definitions import ExplainablePortion as EPortion
 
 class Explainer(ABC):
     """
     Abstract Explainer class
     """
 
-    def __init__(self, director: director.ExpDirector) -> None:
+    def __init__(self, director: director.ExplanationDirector) -> None:
         self.director = director
         self.control: clingo.Control = self.director.control
 
@@ -31,5 +32,5 @@ class Explainer(ABC):
         pass
 
     @abstractmethod
-    def get_exp_portions(self, eunit: EUnit) -> List[ExpPortion]:
+    def get_explainable_portions(self, eunit: EUnit) -> List[EPortion]:
         pass
