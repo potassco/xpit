@@ -5,8 +5,8 @@ from xpit.explainer import ProgramExplainer
 
 ctl = clingo.Control()
 
-expdir = ExplanationDirector(ctl, 2)
-pe_encoding = ProgramExplainer(director = expdir, lp_files = ["ex1.lp"])
+expdir = ExplanationDirector(ctl, 5)
+pe_encoding = ProgramExplainer(director = expdir, lp_files = ["ex2.lp"])
 
 expdir.register_explainer(pe_encoding)
 
