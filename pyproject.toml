@@ -3,7 +3,7 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "explanation_director_prototype"
+name = "xpit"
 authors = [{ name = "Orkunt Sabuncu", email = "orkunt.sabuncu@potassco.com" },
             { name= "Christoph Glinzer", email = "christoph.glinzer@potassco.com"}]
 description = "A template project."
@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/PotasscoSolutions/explanation-director-prototype.git"
+Homepage = "https://github.com/PotasscoSolutions/xpit.git"
 
 [project.optional-dependencies]
 format = ["black", "isort", "autoflake"]
@@ -26,10 +26,10 @@ lint_pylint = ["pylint"]
 typecheck = ["types-setuptools", "mypy>=1.18.0", "pytest"]
 test = ["coverage>=7.12.0", "pytest>=8.3.4",]
 doc = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "mkdoclingo"]
-dev = ["explanation_director_prototype[test,typecheck,lint_pylint]"]
+dev = ["xpit[test,typecheck,lint_pylint]"]
 
 [project.scripts]
-explanation_director_prototype = "explanation_director_prototype.__main__:main"
+explanation_director_prototype = "xpit.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -72,8 +72,8 @@ variable-rgx = "^[a-z][a-z0-9]*((_[a-z0-9]+)*_?)?$"
 good-names = ["_"]
 
 [tool.coverage.run]
-source = ["explanation_director_prototype", "tests"]
-omit = ["*/explanation_director_prototype/__main__.py"]
+source = ["xpit", "tests"]
+omit = ["*/xpit/__main__.py"]
 
 [tool.coverage.report]
 exclude_lines = ["assert", "nocoverage"]
