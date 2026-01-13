@@ -6,18 +6,18 @@ from xpit.explainer import ProgramExplainer
 ctl = clingo.Control()
 
 expdir = ExplanationDirector(ctl, 2)
-pe_encoding = ProgramExplainer(director = expdir, lp_files = ["ex1.lp"])
+pe_encoding = ProgramExplainer(director=expdir, lp_files=["examples/unsat/ex1.lp"])
 
 expdir.register_explainer(pe_encoding)
 
 expdir.setup_before_grounding()
 
-ctl.ground([("base",[])])
+ctl.ground([("base", [])])
 
 expdir.setup_before_solving()
 
 print("Eunit - Eportion bindings:")
-for k,v in pe_encoding._binding.items():
+for k, v in pe_encoding._binding.items():
     print(k, "->", v)
 # print(pe_encoding._binding)
 

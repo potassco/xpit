@@ -4,8 +4,8 @@ import re
 
 import pytest
 from clingo import Function, Number, String, Symbol, clingo_main
-
 from explanation_director_prototype.exp_director import ExpDirectorProto
+
 from explanation_director_prototype.utils import logging
 
 from .test_main import TEST_DIR

@@ -1,17 +1,17 @@
-from typing import List
 import math
+from typing import List
 
 import clingo
+from clingexplaid.mus import CoreComputer
+from clingexplaid.mus.explorers import ExplorerAsp, ExplorerPowerset
 from clingo.symbol import Function
 
-from clingexplaid.mus import CoreComputer
-from clingexplaid.mus.explorers import ExplorerPowerset
-
-# from ..explainer import Explainer
 import xpit.explainer as explainer
-from ..definitions import ExplanationUnit as EUnit
-from ..definitions import ExplainablePortion as EPortion
+from xpit.definitions import ExplainablePortion as EPortion
+from xpit.definitions import ExplanationUnit as EUnit
+from xpit.utils.logging import get_logger
 
+logger = get_logger(__name__)
 
 class ExplanationDirector:
     """
@@ -39,7 +39,7 @@ class ExplanationDirector:
     def _create_eunits(self) -> None:
         with self.control.backend() as backend:
             for i in range(self.maximum_number_of_eunits):
-                sym = Function("_eunit" +  str(i+1))
+                sym = Function("_eunit" + str(i + 1))
                 atm = backend.add_atom(sym)
                 self.eunits.append(EUnit(assumption_lit=atm))
                 backend.add_rule(head=[atm], choice=True)
@@ -64,11 +64,11 @@ class ExplanationDirector:
         distribution = self._distribute_eunits_equally()
         start = 0
         for idx, exp in enumerate(self.explainers):
-            exp.assign_eunit_budget(self.eunits[start:start+distribution[idx]])
+            exp.assign_eunit_budget(self.eunits[start : start + distribution[idx]])
             start += distribution[idx]
 
     def compute_minimal_core_eunits(self):
-        cc = CoreComputer(self.control, [eu.assumption_lit for eu in self.eunits], ExplorerPowerset)
+        cc = CoreComputer(self.control, [eu.assumption_lit for eu in self.eunits], ExplorerAsp)
         mus_generator = cc.get_multiple_minimal()
         for mus in mus_generator:
             minimal_core_eunits = [self._find_eunit_for_assumption_literal(a.literal) for a in mus.assumptions]

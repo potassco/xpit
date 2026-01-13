@@ -1,22 +1,14 @@
-import logging
-import sys
-
 import clingo
 
-from xpit.director import ExplanationDirector
+from xpit.director import ExpDirector
 from xpit.explainer import ProgramExplainer
-from xpit.utils.logging import configure_logging
-
-configure_logging(sys.stderr, logging.DEBUG, sys.stderr.isatty())
 
 ctl = clingo.Control()
 
-expdir = ExplanationDirector(ctl, 20)
-pe_encoding = ProgramExplainer(director=expdir, lp_files=["eventschedule.lp"])
-pe_instance = ProgramExplainer(director=expdir, lp_files=["art_event.lp"])
+expdir = ExpDirector(ctl, 4)
+pe_encoding = ProgramExplainer(director=expdir, lp_files=["test.lp"])
 
 expdir.register_explainer(pe_encoding)
-expdir.register_explainer(pe_instance)
 
 expdir.setup_before_grounding()
 

@@ -1,28 +1,25 @@
-import logging
-import sys
-
 import clingo
 
 from xpit.director import ExplanationDirector
 from xpit.explainer import ProgramExplainer
-from xpit.utils.logging import configure_logging
-
-configure_logging(sys.stderr, logging.DEBUG, sys.stderr.isatty())
 
 ctl = clingo.Control()
 
-expdir = ExplanationDirector(ctl, 20)
-pe_encoding = ProgramExplainer(director=expdir, lp_files=["eventschedule.lp"])
-pe_instance = ProgramExplainer(director=expdir, lp_files=["art_event.lp"])
+expdir = ExplanationDirector(ctl, 7)
+pe_encoding = ProgramExplainer(director=expdir, lp_files=["examples/unsat/ex3.lp"])
 
 expdir.register_explainer(pe_encoding)
-expdir.register_explainer(pe_instance)
 
 expdir.setup_before_grounding()
 
 ctl.ground([("base", [])])
 
 expdir.setup_before_solving()
+
+print("Eunit - Eportion bindings:")
+for k, v in pe_encoding._binding.items():
+    print(k, "->", v)
+# print(pe_encoding._binding)
 
 for core in expdir.compute_minimal_core_eunits():
     print("\n")

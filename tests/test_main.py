@@ -5,10 +5,10 @@ Test cases for main application functionality.
 from io import StringIO
 
 import pytest
-
-from explanation_director_prototype.utils import logging
 from explanation_director_prototype.utils.logging import configure_logging, get_logger
 from explanation_director_prototype.utils.parser import get_parser
+
+from explanation_director_prototype.utils import logging
 
 
 class TestMain:

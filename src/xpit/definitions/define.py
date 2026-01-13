@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from clingo.symbolic_atoms import SymbolicAtom
 
+
 @dataclass
 class ExplanationUnit:
     """

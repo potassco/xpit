@@ -2,21 +2,34 @@
 ASP Program based explainer
 """
 
-from pathlib import Path
-from typing import Sequence, Union, List, Dict
 from copy import deepcopy
+from pathlib import Path
+from typing import Dict, List, Sequence, Union
 
-from clingo.ast import ASTType, Rule, Aggregate, Guard, SymbolicTerm, ConditionalLiteral, ComparisonOperator, Sign, Transformer, ProgramBuilder, parse_files
+from clingo.ast import (
+    Aggregate,
+    ASTType,
+    ComparisonOperator,
+    ConditionalLiteral,
+    Guard,
+    ProgramBuilder,
+    Rule,
+    Sign,
+    SymbolicTerm,
+    Transformer,
+    parse_files,
+)
 from clingo.symbol import parse_term
-
 from clorm import FactBase
 
 from xpit import director
+from xpit.definitions import ExplainablePortion as EPortion
+from xpit.definitions import ExplanationUnit as EUnit
+from xpit.utils.logging import get_logger
 
 from .base import Explainer
-from ..definitions import ExplanationUnit as EUnit
-from ..definitions import ExplainablePortion as EPortion
 
+logger = get_logger(__name__)
 class ExplainablePortionTransformer(Transformer):
     """
     A transformer that finds explainable portions in a logic program
@@ -36,15 +49,15 @@ class ExplainablePortionTransformer(Transformer):
                 lit.ast_type == ASTType.Literal
                 and lit.atom.ast_type == ASTType.SymbolicAtom
                 and lit.atom.symbol.ast_type == ASTType.Function
-                and lit.atom.symbol.name == "_explain"
+                and lit.atom.symbol.name == "_explain" # TODO: check sign of _explain?
             ):
+                logger.debug("Rule marked for explanation: %s", ast)
                 exp_lit = deepcopy(lit)
                 exp_lit.atom.symbol.name = "_exp"
                 exp_lit.sign = Sign.NoSign
                 _explain_lit = lit
                 is_marked_for_explanation = True
                 self.exp_portion_ids.append(str(lit.atom.symbol.arguments[0]))
-                # print("Explainable portion in rule", ast)
                 break
 
         if is_marked_for_explanation:
@@ -60,14 +73,13 @@ class ExplainablePortionTransformer(Transformer):
                 ),
                 [l for l in ast.body if l != _explain_lit],
             )
-            print(new_rule)
+            logger.debug("New rule added: %s", new_rule)
             self.builder.add(new_rule)
             # change the original rule into
             # head :- ...., not _exp(...).
-            _explain_lit.atom.symbol.name="_exp"
-            # return new_rule
+            _explain_lit.atom.symbol.name = "_exp"
 
-        print("Program rule:", ast)
+        logger.debug("Program rule: %s", ast)
         return ast
 
 
@@ -78,9 +90,7 @@ class ProgramExplainer(Explainer):
     assigned budget to explainable portions.
     """
 
-    def __init__(
-        self, director: director.ExplanationDirector, lp_files: Sequence[Union[str, Path]]
-    ) -> None:
+    def __init__(self, director: "director.ExplanationDirector", lp_files: Sequence[Union[str, Path]]) -> None:
         super().__init__(director)
         self.lp_files = lp_files
         self._exp_portion_ids: set[str] = None
@@ -103,27 +113,24 @@ class ProgramExplainer(Explainer):
         return self._fo_transformations()
 
     def assign_eunit_budget(self, eunits: List[EUnit]) -> None:
-        print("~"*40)
-        print("Program-based explainer")
-        print("ExpPortion ids:", self._exp_portion_ids)
-        print("EUnits:", eunits)
+        logger.debug("Assigning eunit budget to explainable portions in ProgramExplainer.")
+        logger.debug("ExpPortion ids: %s", self._exp_portion_ids)
+        logger.debug("EUnits: %s", eunits)
         with self.control.backend() as backend:
             idx = 0
-            for a in self.control.symbolic_atoms.by_signature("_exp",2):
-                # print("ground exp atom",a.symbol)
+            for a in self.control.symbolic_atoms.by_signature("_exp", 2):
                 if str(a.symbol.arguments[0]) not in self._exp_portion_ids:
                     continue
                 exp_por = EPortion(id_=str(a.symbol.arguments[0]), exp_atom=a)
-                # print(exp_por)
                 # :- _exp(...), eunit.
                 backend.add_rule(head=[], body=[a.literal, eunits[idx].assumption_lit])
                 # _exp(...) :- not eunit.
-                backend.add_rule(head=[a.literal], body=[-1*eunits[idx].assumption_lit], choice=False)
+                backend.add_rule(head=[a.literal], body=[-1 * eunits[idx].assumption_lit], choice=False)
                 if eunits[idx] in self._binding:
                     self._binding[eunits[idx]].append(exp_por)
                 else:
                     self._binding[eunits[idx]] = [exp_por]
-                if idx+1 < len(eunits):
+                if idx + 1 < len(eunits):
                     idx += 1
 
     def get_explainable_portions(self, eunit: EUnit) -> List[EPortion]:

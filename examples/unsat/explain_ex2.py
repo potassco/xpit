@@ -6,13 +6,13 @@ from xpit.explainer import ProgramExplainer
 ctl = clingo.Control()
 
 expdir = ExplanationDirector(ctl, 5)
-pe_encoding = ProgramExplainer(director = expdir, lp_files = ["ex2.lp"])
+pe_encoding = ProgramExplainer(director=expdir, lp_files=["ex2.lp"])
 
 expdir.register_explainer(pe_encoding)
 
 expdir.setup_before_grounding()
 
-ctl.ground([("base",[])])
+ctl.ground([("base", [])])
 
 expdir.setup_before_solving()
 
