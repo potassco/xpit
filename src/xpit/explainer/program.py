@@ -2,10 +2,12 @@
 ASP Program based explainer
 """
 
+from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
-from typing import Dict, List, Sequence, Union
+from typing import Generator, List, Sequence, Union
 
+import clingo
 from clingo.ast import (
     Aggregate,
     ASTType,
@@ -22,7 +24,6 @@ from clingo.ast import (
 from clingo.symbol import parse_term
 from clorm import FactBase
 
-from xpit import director
 from xpit.definitions import ExplainablePortion as EPortion
 from xpit.definitions import ExplanationUnit as EUnit
 from xpit.utils.logging import get_logger
@@ -30,7 +31,9 @@ from xpit.utils.logging import get_logger
 from .base import Explainer
 
 logger = get_logger(__name__)
-class ExplainablePortionTransformer(Transformer):
+
+
+class ExplainablePortionTransformer:
     """
     A transformer that finds explainable portions in a logic program
     and converts it to an explainable rule.
@@ -38,9 +41,21 @@ class ExplainablePortionTransformer(Transformer):
 
     def __init__(self, builder: ProgramBuilder):
         self.exp_portion_ids = []
-        self.builder = builder
+        self._builder = builder
 
-    def visit_Rule(self, ast):
+    def register_ast(self, ast: clingo.ast.AST, builder: clingo.ast.ProgramBuilder) -> None:
+        """Registers the provided AST to the builder and the parsed rules list"""
+        builder.add(ast)
+
+    def process_ast_list(self, ast_list: List[clingo.ast.AST]) -> None:
+        for ast in ast_list:
+            if ast.ast_type == clingo.ast.ASTType.Rule:
+                for new_ast in self._transform_rule(ast):
+                    self.register_ast(new_ast, self._builder)
+            else:
+                self.register_ast(ast, self._builder)
+
+    def _transform_rule(self, ast) -> Generator[clingo.ast.AST]:
         is_marked_for_explanation = False
         _explain_lit = None
 
@@ -49,7 +64,7 @@ class ExplainablePortionTransformer(Transformer):
                 lit.ast_type == ASTType.Literal
                 and lit.atom.ast_type == ASTType.SymbolicAtom
                 and lit.atom.symbol.ast_type == ASTType.Function
-                and lit.atom.symbol.name == "_explain" # TODO: check sign of _explain?
+                and lit.atom.symbol.name == "_explain"
             ):
                 logger.debug("Rule marked for explanation: %s", ast)
                 exp_lit = deepcopy(lit)
@@ -57,6 +72,7 @@ class ExplainablePortionTransformer(Transformer):
                 exp_lit.sign = Sign.NoSign
                 _explain_lit = lit
                 is_marked_for_explanation = True
+                assert len(lit.atom.symbol.arguments) == 2, "_explain should have two arguments."
                 self.exp_portion_ids.append(str(lit.atom.symbol.arguments[0]))
                 break
 
@@ -74,13 +90,13 @@ class ExplainablePortionTransformer(Transformer):
                 [l for l in ast.body if l != _explain_lit],
             )
             logger.debug("New rule added: %s", new_rule)
-            self.builder.add(new_rule)
+            yield new_rule
             # change the original rule into
             # head :- ...., not _exp(...).
             _explain_lit.atom.symbol.name = "_exp"
 
         logger.debug("Program rule: %s", ast)
-        return ast
+        yield ast
 
 
 class ProgramExplainer(Explainer):
@@ -90,27 +106,28 @@ class ProgramExplainer(Explainer):
     assigned budget to explainable portions.
     """
 
-    def __init__(self, director: "director.ExplanationDirector", lp_files: Sequence[Union[str, Path]]) -> None:
-        super().__init__(director)
+    def __init__(self, lp_files: Sequence[Union[str, Path]]) -> None:
         self.lp_files = lp_files
         self._exp_portion_ids: set[str] = None
-        self._binding: Dict[EUnit, List[EPortion]] = {}
+        self._binding: defaultdict[EUnit, List[EPortion]] = defaultdict(list)
 
-    def add_lp_files(self, lp_files: Union[str, Path]) -> None:
-        self.lp_files.extend(lp_files)
+    def add_lp_file(self, lp_file: Union[str, Path]) -> None:
+        self.lp_files.append(lp_file)
 
     def add_factbase(self, factbase: FactBase) -> None:
         pass
 
-    def _fo_transformations(self) -> int:
+    def _fo_transformations(self) -> None:
+
+        ast_list: list[clingo.ast.AST] = []
         with ProgramBuilder(self.control) as bld:
             t = ExplainablePortionTransformer(builder=bld)
-            parse_files([str(f) for f in self.lp_files], lambda stm: bld.add(t.visit(stm)))
+            parse_files([str(f) for f in self.lp_files], ast_list.append)
+            t.process_ast_list(ast_list)
             self._exp_portion_ids = set(t.exp_portion_ids)
-        return len(t.exp_portion_ids)
 
-    def setup_before_grounding(self) -> int:
-        return self._fo_transformations()
+    def setup_before_grounding(self) -> None:
+        self._fo_transformations()
 
     def assign_eunit_budget(self, eunits: List[EUnit]) -> None:
         logger.debug("Assigning eunit budget to explainable portions in ProgramExplainer.")
@@ -126,15 +143,9 @@ class ProgramExplainer(Explainer):
                 backend.add_rule(head=[], body=[a.literal, eunits[idx].assumption_lit])
                 # _exp(...) :- not eunit.
                 backend.add_rule(head=[a.literal], body=[-1 * eunits[idx].assumption_lit], choice=False)
-                if eunits[idx] in self._binding:
-                    self._binding[eunits[idx]].append(exp_por)
-                else:
-                    self._binding[eunits[idx]] = [exp_por]
+                self._binding[eunits[idx]].append(exp_por)
                 if idx + 1 < len(eunits):
                     idx += 1
 
     def get_explainable_portions(self, eunit: EUnit) -> List[EPortion]:
-        if eunit not in self._binding:
-            return []
-        else:
-            return self._binding[eunit]
+        return self._binding[eunit]

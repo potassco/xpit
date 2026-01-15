@@ -20,9 +20,11 @@ class Explainer(ABC):
     Abstract Explainer class
     """
 
-    def __init__(self, director: "director.ExplanationDirector") -> None:
-        self.director = director
-        self.control: clingo.Control = self.director.control
+    def __init__(self) -> None:
+        self.control: clingo.Control = None
+
+    def set_control(self, control: clingo.Control) -> None:
+        self.control = control
 
     @abstractmethod
     def setup_before_grounding(self) -> int:

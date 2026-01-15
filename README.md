@@ -57,9 +57,7 @@ python src/explanation_director_prototype/exp_director.py resources/eventschedul
 Instructions to install and use `nox` can be found in
 [DEVELOPMENT.md](./DEVELOPMENT.md)
 
-
-"""
-This module utilizes the standard python logging library for logging purposes.
-Users are responsible for configuring logging in their application as needed.
-Refer to the python logging documentation for configuration details.
+""" This module utilizes the standard python logging library for logging
+purposes. Users are responsible for configuring logging in their application as
+needed. Refer to the python logging documentation for configuration details.
 """
