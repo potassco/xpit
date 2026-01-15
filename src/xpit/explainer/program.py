@@ -17,17 +17,19 @@ from .base import Explainer
 from ..definitions import ExplanationUnit as EUnit
 from ..definitions import ExplainablePortion as EPortion
 
-class ExpPortionTransformer(Transformer):
+class ExplainablePortionTransformer(Transformer):
     """
     A transformer that finds explainable portions in a logic program
     and converts it to an explainable rule.
     """
 
-    def __init__(self):
+    def __init__(self, builder: ProgramBuilder):
         self.exp_portion_ids = []
+        self.builder = builder
 
     def visit_Rule(self, ast):
         is_marked_for_explanation = False
+        _explain_lit = None
 
         for lit in ast.body:
             if (
@@ -39,6 +41,7 @@ class ExpPortionTransformer(Transformer):
                 exp_lit = deepcopy(lit)
                 exp_lit.atom.symbol.name = "_exp"
                 exp_lit.sign = Sign.NoSign
+                _explain_lit = lit
                 is_marked_for_explanation = True
                 self.exp_portion_ids.append(str(lit.atom.symbol.arguments[0]))
                 # print("Explainable portion in rule", ast)
@@ -49,23 +52,22 @@ class ExpPortionTransformer(Transformer):
                 ast.location,
                 Aggregate(
                     ast.location,
-                    Guard(
-                        ComparisonOperator.LessEqual,
-                        SymbolicTerm(ast.location, parse_term("1")),
-                    ),
+                    None,
                     [
-                        ConditionalLiteral(ast.location, ast.head, []),
                         ConditionalLiteral(ast.location, exp_lit, []),
                     ],
-                    Guard(
-                        ComparisonOperator.LessEqual,
-                        SymbolicTerm(ast.location, parse_term("1")),
-                    ),
+                    None,
                 ),
-                ast.body,
+                [l for l in ast.body if l != _explain_lit],
             )
-            # print(new_rule)
-            return new_rule
+            print(new_rule)
+            self.builder.add(new_rule)
+            # change the original rule into
+            # head :- ...., not _exp(...).
+            _explain_lit.atom.symbol.name="_exp"
+            # return new_rule
+
+        print("Program rule:", ast)
         return ast
 
 
@@ -92,7 +94,7 @@ class ProgramExplainer(Explainer):
 
     def _fo_transformations(self) -> int:
         with ProgramBuilder(self.control) as bld:
-            t = ExpPortionTransformer()
+            t = ExplainablePortionTransformer(builder=bld)
             parse_files([str(f) for f in self.lp_files], lambda stm: bld.add(t.visit(stm)))
             self._exp_portion_ids = set(t.exp_portion_ids)
         return len(t.exp_portion_ids)
@@ -108,7 +110,7 @@ class ProgramExplainer(Explainer):
         with self.control.backend() as backend:
             idx = 0
             for a in self.control.symbolic_atoms.by_signature("_exp",2):
-                print("ground exp atom",a.symbol)
+                # print("ground exp atom",a.symbol)
                 if str(a.symbol.arguments[0]) not in self._exp_portion_ids:
                     continue
                 exp_por = EPortion(id_=str(a.symbol.arguments[0]), exp_atom=a)

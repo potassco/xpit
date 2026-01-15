@@ -16,7 +16,10 @@ ctl.ground([("base",[])])
 
 expdir.setup_before_solving()
 
-print(pe_encoding._binding)
+print("Eunit - Eportion bindings:")
+for k,v in pe_encoding._binding.items():
+    print(k, "->", v)
+# print(pe_encoding._binding)
 
 for core in expdir.compute_minimal_core_eunits():
     print("\n")

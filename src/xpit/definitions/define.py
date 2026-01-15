@@ -26,3 +26,6 @@ class ExplainablePortion:
 
     id_: str
     exp_atom: SymbolicAtom
+
+    def __repr__(self):
+        return "ExplainablePortion(id=%s, exp_atom=%s)" % (self.id_, str(self.exp_atom.symbol))
