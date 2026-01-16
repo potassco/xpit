@@ -15,7 +15,7 @@ class ExplanationUnit:
 
     assumption_lit: int
 
-    def __hash__(self):
+    def __hash__(self):  # nocoverage
         return hash(self.assumption_lit)
 
 
@@ -28,5 +28,5 @@ class ExplainablePortion:
     id_: str
     exp_atom: SymbolicAtom
 
-    def __repr__(self):
+    def __repr__(self):  # nocoverage
         return "ExplainablePortion(id=%s, exp_atom=%s)" % (self.id_, str(self.exp_atom.symbol))

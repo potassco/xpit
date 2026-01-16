@@ -43,17 +43,17 @@ class ExplainablePortionTransformer:
         self.exp_portion_ids = []
         self._builder = builder
 
-    def register_ast(self, ast: clingo.ast.AST, builder: clingo.ast.ProgramBuilder) -> None:
+    def register_ast(self, ast: clingo.ast.AST) -> None:
         """Registers the provided AST to the builder and the parsed rules list"""
-        builder.add(ast)
+        self._builder.add(ast)
 
     def process_ast_list(self, ast_list: List[clingo.ast.AST]) -> None:
         for ast in ast_list:
             if ast.ast_type == clingo.ast.ASTType.Rule:
                 for new_ast in self._transform_rule(ast):
-                    self.register_ast(new_ast, self._builder)
+                    self.register_ast(new_ast)
             else:
-                self.register_ast(ast, self._builder)
+                self.register_ast(ast)
 
     def _transform_rule(self, ast) -> Generator[clingo.ast.AST]:
         is_marked_for_explanation = False
@@ -73,7 +73,10 @@ class ExplainablePortionTransformer:
                 _explain_lit = lit
                 is_marked_for_explanation = True
                 assert len(lit.atom.symbol.arguments) == 2, "_explain should have two arguments."
-                self.exp_portion_ids.append(str(lit.atom.symbol.arguments[0]))
+                if str(lit.atom.symbol.arguments[0]) in self.exp_portion_ids:
+                    logger.warning("Duplicate explainable portion id found: %s", str(lit.atom.symbol.arguments[0]))
+                else:
+                    self.exp_portion_ids.append(str(lit.atom.symbol.arguments[0]))
                 break
 
         if is_marked_for_explanation:
@@ -107,29 +110,34 @@ class ProgramExplainer(Explainer):
     """
 
     def __init__(self, lp_files: Sequence[Union[str, Path]]) -> None:
+        super().__init__()
         self.lp_files = lp_files
         self._exp_portion_ids: set[str] = None
         self._binding: defaultdict[EUnit, List[EPortion]] = defaultdict(list)
 
     def add_lp_file(self, lp_file: Union[str, Path]) -> None:
+        """Adds an LP file to the explainer's list of LP files."""
         self.lp_files.append(lp_file)
 
     def add_factbase(self, factbase: FactBase) -> None:
-        pass
+        """Adds a Clorm FactBase to the explainer's program."""
 
     def _fo_transformations(self) -> None:
-
+        if not self.control:
+            raise ValueError("Unregistered explainer: control is not set.")
         ast_list: list[clingo.ast.AST] = []
         with ProgramBuilder(self.control) as bld:
             t = ExplainablePortionTransformer(builder=bld)
             parse_files([str(f) for f in self.lp_files], ast_list.append)
             t.process_ast_list(ast_list)
-            self._exp_portion_ids = set(t.exp_portion_ids)
+            self._exp_portion_ids = t.exp_portion_ids
 
     def setup_before_grounding(self) -> None:
         self._fo_transformations()
 
     def assign_eunit_budget(self, eunits: List[EUnit]) -> None:
+        if not self.control:
+            raise ValueError("Unregistered explainer: control is not set.")
         logger.debug("Assigning eunit budget to explainable portions in ProgramExplainer.")
         logger.debug("ExpPortion ids: %s", self._exp_portion_ids)
         logger.debug("EUnits: %s", eunits)

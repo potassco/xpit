@@ -9,19 +9,20 @@ from xpit.director.director import ExplanationDirector
 from xpit.explainer.program import ProgramExplainer
 from xpit.utils import logging
 
+from ..utils import director_factory
 from .test_main import TEST_DIR
 
 
-def test_register_explainer(director_factory, explainer_factory):
+def test_register_explainer(director_factory):
     """Test registering an explainer."""
 
     director = director_factory(2)
     assert len(director.explainers) == 0, "Explainers list should be empty initially."
 
     # create ProgramExplainer instance
-    explainer1 = explainer_factory(director=director, type_="program", lp_files=[])
-    explainer2 = explainer_factory(director=director, type_="program", lp_files=[])
-    explainer3 = explainer_factory(director=director, type_="program", lp_files=[])
+    explainer1 = ProgramExplainer(lp_files=[])
+    explainer2 = ProgramExplainer(lp_files=[])
+    explainer3 = ProgramExplainer(lp_files=[])
 
     director.register_explainer(explainer1)
     assert explainer1 in director.explainers, "Explainer should be registered in the director."
@@ -31,13 +32,6 @@ def test_register_explainer(director_factory, explainer_factory):
     assert len(director.explainers) == 2, "Explainers list should have two explainers."
     with pytest.raises(ValueError, match="Number of registered explainers exceeds maximum number of eunits."):
         director.register_explainer(explainer3)  # Exceeds maximum_number_of_eunits
-
-
-def test_find_eunit_for_assumption_literal(director_factory):
-    """Test finding eunit for a given assumption literal."""
-
-    director_factory(5)
-    pass  # further implementation would be needed here to create eunits and test the method
 
 
 @pytest.mark.parametrize(
@@ -55,27 +49,25 @@ def test_create_eunits(director_factory, num_eunits):
     director._create_eunits()
     assert len(director.eunits) == num_eunits, "Number of created eunits should match the specified number."
     assert isinstance(director.eunits[0], ExplanationUnit), "Created objects should be instances of ExplanationUnit."
-    # TODO: can we test that smth was added to backend?
 
 
 @pytest.mark.parametrize(
-    "num_eunits",
-    "num_explainers",
-    "distribution"[
+    "num_eunits, num_explainers, distribution",
+    [
         (4, 2, [2, 2]),
         (5, 2, [3, 2]),
         (10, 3, [4, 3, 3]),
         (200, 7, [29, 29, 29, 29, 28, 28, 28]),
     ],
 )
-def test_distribute_eunits_equally(director_factory, explainer_factory, num_eunits, num_explainers, distribution):
+def test_distribute_eunits_equally(director_factory, num_eunits, num_explainers, distribution):
     """Test equal distribution of eunits among explainers."""
 
     director = director_factory(num_eunits)
 
     # Register multiple explainers
     for _ in range(num_explainers):
-        explainer = explainer_factory(director=director, type_="program", lp_files=[])
+        explainer = ProgramExplainer(lp_files=[])
         director.register_explainer(explainer)
 
     distribution = director._distribute_eunits_equally()
@@ -85,55 +77,29 @@ def test_distribute_eunits_equally(director_factory, explainer_factory, num_euni
     assert distribution == distribution, "Distribution should match expected distribution."
 
 
-def test_setup_before_solving(director_factory):  # TODO: what should be tested here?
-    """Test setup before solving, including eunit creation and distribution."""
+@pytest.mark.parametrize(
+    "num_eunit, file, num_cores, ids_in_cores",
+    [
+        (3, "not_a_of_x.lp", 3, [{"r1"}]),
+        (2, "not_a_of_x.lp", 2, [{"r1"}]),
+        (4, "not_a_of_x.lp", 3, [{"r1"}]),
+        (2, "ex1.lp", 1, [{"r1"}]),
+        (1, "ex1.lp", 1, [{"r1"}]),
+        (2, "ex2.lp", 1, [{"r1"}]),
+        (1, "ex2.lp", 1, [{}]),
+    ],
+)
+def test_director(director_factory, num_eunit, file, num_cores, ids_in_cores):
 
-    num_eunits = 6
-    director = director_factory(num_eunits)
-
-    # Register multiple explainers
-    for _ in range(2):
-        explainer = ProgramExplainer(director=director, lp_files=[])
-        director.register_explainer(explainer)
-
-    director.setup_before_solving()
-
-    assert len(director.eunits) == num_eunits, "Number of created eunits should match the maximum number."
-
-    distribution = director._distribute_eunits_equally()
-    assert sum(distribution) == num_eunits, "Total distributed eunits should equal the maximum number."
-
-
-def test_compute_minimal_core_eunits(director_factory):  # TODO: a little bit more difficult to test?
-    """Test computation of minimal core eunits."""
-
-    director = director_factory(5)
-
-    # Register an explainer
-    explainer = ProgramExplainer(director=director, lp_files=[])
+    director = director_factory(num_eunit)
+    explainer = ProgramExplainer(lp_files=[str(TEST_DIR.joinpath(f"res/{file}"))])
     director.register_explainer(explainer)
-
+    director.setup_before_grounding()
+    director.control.ground([("base", [])])
     director.setup_before_solving()
 
-    list(director.compute_minimal_core_eunits())
-
-    pass  # further implementation would be needed here to validate the minimal cores
-
-
-def test_compute_explanation(director_factory):
-    """Test computation of explanations from a core of eunits."""
-
-    director = director_factory(5)
-
-    # Register an explainer
-    explainer = ProgramExplainer(director=director, lp_files=[])
-    director.register_explainer(explainer)
-
-    director.setup_before_solving()
-
-    # Create a mock core of eunits
-    core_eunits = director.eunits[:3]  # take first 3 eunits as core
-
-    director.compute_explanation(core_eunits)
-
-    pass  # further implementation would be needed here to validate the explanation
+    cores = list(director.compute_minimal_core_eunits())
+    assert len(cores) == num_cores
+    for core in cores:
+        exp_portions = director.compute_explanation(core)
+        assert set(ep.id_ for ep in exp_portions) in ids_in_cores
