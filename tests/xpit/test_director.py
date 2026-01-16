@@ -1,15 +1,15 @@
 """tests for explanation_director_prototype.exp_dir module."""
 
+from typing import Callable
+
 import clingo
 import pytest
-from clingo import Function, Number, String, Symbol, clingo_main
 
 from xpit.definitions.define import ExplanationUnit
 from xpit.director.director import ExplanationDirector
 from xpit.explainer.program import ProgramExplainer
-from xpit.utils import logging
 
-from ..utils import director_factory
+from ..utils import fixture_director_factory  # pylint: disable=unused-import
 from .test_main import TEST_DIR
 
 
@@ -22,7 +22,7 @@ from .test_main import TEST_DIR
         0,
     ],
 )
-def test_init(enum_num):
+def test_init(enum_num: int) -> None:
     """Test initialization of ExplanationDirector."""
 
     ctl = clingo.Control()
@@ -34,11 +34,11 @@ def test_init(enum_num):
         director = ExplanationDirector(ctl, enum_num)
         assert director.control == ctl, "Control object should be set correctly."
         assert director.maximum_number_of_eunits == enum_num, "Maximum number of eunits should be set correctly."
-        assert director.explainers == [], "Explainers list should be initialized as empty."
-        assert director.eunits == [], "Eunits list should be initialized as empty."
+        assert not director.explainers, "Explainers list should be initialized as empty."
+        assert not director.eunits, "Eunits list should be initialized as empty."
 
 
-def test_register_explainer(director_factory):
+def test_register_explainer(director_factory: Callable[[int], ExplanationDirector]) -> None:
     """Test registering an explainer."""
 
     director = director_factory(2)
@@ -67,17 +67,17 @@ def test_register_explainer(director_factory):
         10,
     ],
 )
-def test_create_eunits(director_factory, num_eunits):
+def test_create_eunits(director_factory: Callable[[int], ExplanationDirector], num_eunits: int) -> None:
     """Test creation of explanation units (eunits)."""
 
     director = director_factory(num_eunits)
-    director._create_eunits()
+    director._create_eunits()  # pylint: disable=protected-access
     assert len(director.eunits) == num_eunits, "Number of created eunits should match the specified number."
     assert isinstance(director.eunits[0], ExplanationUnit), "Created objects should be instances of ExplanationUnit."
 
 
 @pytest.mark.parametrize(
-    "num_eunits, num_explainers, distribution",
+    "num_eunits, num_explainers, expected_distribution",
     [
         (4, 2, [2, 2]),
         (5, 2, [3, 2]),
@@ -85,7 +85,12 @@ def test_create_eunits(director_factory, num_eunits):
         (200, 7, [29, 29, 29, 29, 28, 28, 28]),
     ],
 )
-def test_distribute_eunits_equally(director_factory, num_eunits, num_explainers, distribution):
+def test_distribute_eunits_equally(
+    director_factory: Callable[[int], ExplanationDirector],
+    num_eunits: int,
+    num_explainers: int,
+    expected_distribution: list[int],
+) -> None:
     """Test equal distribution of eunits among explainers."""
 
     director = director_factory(num_eunits)
@@ -95,11 +100,11 @@ def test_distribute_eunits_equally(director_factory, num_eunits, num_explainers,
         explainer = ProgramExplainer(lp_files=[])
         director.register_explainer(explainer)
 
-    distribution = director._distribute_eunits_equally()
+    distribution = director._distribute_eunits_equally()  # pylint: disable=protected-access
 
     assert sum(distribution) == num_eunits, "Total distributed eunits should equal the maximum number."
     assert len(distribution) == num_explainers, "Distribution list length should match number of explainers."
-    assert distribution == distribution, "Distribution should match expected distribution."
+    assert expected_distribution == distribution, "Distribution should match expected distribution."
 
 
 @pytest.mark.parametrize(
@@ -115,7 +120,14 @@ def test_distribute_eunits_equally(director_factory, num_eunits, num_explainers,
         (3, "sat1.lp", 0, []),
     ],
 )
-def test_director(director_factory, num_eunit, file, num_cores, ids_in_cores):
+def test_director(
+    director_factory: Callable[[int], ExplanationDirector],
+    num_eunit: int,
+    file: str,
+    num_cores: int,
+    ids_in_cores: list[set[str]],
+) -> None:
+    """test ExplanationDirector usage."""
 
     director = director_factory(num_eunit)
     explainer = ProgramExplainer(lp_files=[str(TEST_DIR.joinpath(f"res/{file}"))])

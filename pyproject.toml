@@ -79,5 +79,5 @@ omit = ["*/xpit/__main__.py"]
 exclude_lines = ["assert", "nocoverage"]
 
 [tool.mypy]
-exclude = ["build", "resources", "site", "noxfile.py"]
+exclude = ["build", "examples", "site", "noxfile.py"]
 strict = true

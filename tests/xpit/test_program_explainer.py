@@ -2,6 +2,7 @@
 
 from typing import Callable
 
+import clingo
 import pytest
 from clingo.ast import parse_string
 
@@ -9,23 +10,27 @@ from tests.xpit.test_main import TEST_DIR
 from xpit.director.director import ExplanationDirector
 from xpit.explainer.program import ExplainablePortionTransformer, ProgramExplainer
 
-from ..utils import director_factory
+from ..utils import fixture_director_factory  # pylint: disable=unused-import
 
 
 class MockBuilder:
+    """Class mocking a clingo builder for testing purposes."""
 
-    def __init__(self, control=None):
+    def __init__(self, control=None) -> None:  # type: ignore
+        """initializes the mock builder."""
         self.control = control
 
-    def add(self, *args, **kwargs):  # nocoverage
-        pass  # Does nothing, just a placeholder for the real method
+    def add(self, *args, **kwargs) -> None:  # type: ignore
+        """mock add method."""
+        # Does nothing, just a placeholder for the real method
 
 
-def test_add_lp_files(director_factory):
+def test_add_lp_files(director_factory: Callable[[int], ExplanationDirector]) -> None:
+    """Test adding LP files to ProgramExplainer."""
 
     director_factory(10)
     explainer = ProgramExplainer(lp_files=[])
-    assert explainer.lp_files == [], "Initial lp_files should be empty."
+    assert not explainer.lp_files, "Initial lp_files should be empty."
     lp_files = ["test1.lp", "test2.lp"]
     for file in lp_files:
         explainer.add_lp_file(file)
@@ -40,20 +45,21 @@ def test_add_lp_files(director_factory):
         ("dupl_ids.lp", ["r1"], True),
     ],
 )
-def test_setup_before_rounding(
-    caplog,
+def test_setup_before_grounding(
+    caplog: pytest.LogCaptureFixture,
     director_factory: Callable[[int], "ExplanationDirector"],
     file: str,
     expected_ids: list[str],
     duplicate_warning: bool,
-):
-
+) -> None:
+    """test setup_before_grounding of ProgramExplainer."""
     file_path = TEST_DIR.joinpath(f"res/{file}")
     explainer = ProgramExplainer(lp_files=[str(file_path)])
     director = director_factory(5)
     director.register_explainer(explainer)
     with caplog.at_level("WARNING"):
         director.setup_before_grounding()
+    # pylint: disable=protected-access
     assert len(explainer._exp_portion_ids) == len(expected_ids), "There should be 1 explainable portion identified."
     assert all(rid in explainer._exp_portion_ids for rid in expected_ids), "Expected explainable portion id not found."
     if duplicate_warning:
@@ -68,8 +74,13 @@ def test_setup_before_rounding(
         (4, "not_a_of_x.lp", 0),
     ],
 )
-def test_assign_eunit_budget(director_factory, num_eunits: int, file: str, expected_binding_size_of_last_eunit: int):
-
+def test_assign_eunit_budget(
+    director_factory: Callable[[int], ExplanationDirector],
+    num_eunits: int,
+    file: str,
+    expected_binding_size_of_last_eunit: int,
+) -> None:
+    """test assign_eunit_budget of ProgramExplainer."""
     director = director_factory(num_eunits)
     file_path = TEST_DIR.joinpath(f"res/{file}")
     explainer = ProgramExplainer(lp_files=[str(file_path)])
@@ -80,6 +91,7 @@ def test_assign_eunit_budget(director_factory, num_eunits: int, file: str, expec
 
     assert len(explainer.get_explainable_portions(director.eunits[-1])) == expected_binding_size_of_last_eunit
     if expected_binding_size_of_last_eunit > 0:
+        # pylint: disable=protected-access
         assert len(explainer._binding.keys()) == num_eunits, "All eunits should have bindings."
 
 
@@ -90,17 +102,19 @@ def test_assign_eunit_budget(director_factory, num_eunits: int, file: str, expec
         ("c :- d.", "c :- d.", False),
     ],
 )
-def test_transform_rule(caplog, rule_str, exp_rule_str, is_marked_for_explanation):
-
-    ast_nodes = []
-    parse_string(rule_str, lambda stm: ast_nodes.append(stm))
+def test_transform_rule(
+    caplog: pytest.LogCaptureFixture, rule_str: str, exp_rule_str: str, is_marked_for_explanation: bool
+) -> None:
+    """test _transform_rule of ExplainablePortionTransformer."""
+    ast_nodes: list[clingo.ast.AST] = []
+    parse_string(rule_str, ast_nodes.append)
     ast = ast_nodes[1]
-    transformer = ExplainablePortionTransformer(builder=MockBuilder())
+    transformer = ExplainablePortionTransformer(builder=MockBuilder())  # type: ignore
     with caplog.at_level("DEBUG"):
-        t_asts = list(transformer._transform_rule(ast))
+        t_asts = list(transformer._transform_rule(ast))  # pylint: disable=protected-access
 
-    expected_ast_nodes = []
-    parse_string(exp_rule_str, lambda stm: expected_ast_nodes.append(stm))
+    expected_ast_nodes: list[clingo.ast.AST] = []
+    parse_string(exp_rule_str, expected_ast_nodes.append)
 
     assert all(t_ast in expected_ast_nodes for t_ast in t_asts), "Transformed ASTs should match expected ASTs."
     if is_marked_for_explanation:

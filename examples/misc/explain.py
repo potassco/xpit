@@ -1,12 +1,14 @@
+"""example usage of xpit library"""  # TODO: duplicated code, example to similiar to others
+
 import clingo
 
-from xpit.director import ExpDirector
+from xpit.director.director import ExplanationDirector
 from xpit.explainer import ProgramExplainer
 
 ctl = clingo.Control()
 
-expdir = ExpDirector(ctl, 4)
-pe_encoding = ProgramExplainer(director=expdir, lp_files=["test.lp"])
+expdir = ExplanationDirector(ctl, 4)
+pe_encoding = ProgramExplainer(lp_files=["test.lp"])
 
 expdir.register_explainer(pe_encoding)
 

@@ -1,3 +1,5 @@
+"""example usage of xpit library"""
+
 import logging
 import sys
 
