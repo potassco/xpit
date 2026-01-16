@@ -1,4 +1,4 @@
-"""tests for explanation_director_prototype.exp_dir module."""
+"""tests for xpit module."""
 
 from typing import Callable
 

@@ -27,7 +27,7 @@ def lint_pylint(session):
     Run pylint.
     """
     session.install("-e", ".[lint_pylint]", "-e", ".[test]")
-    session.run("pylint", "--disable=W0511", "explanation_director_prototype", "tests")
+    session.run("pylint", "--disable=W0511", "xpit", "tests")
 
 
 @nox.session
