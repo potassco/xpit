@@ -7,7 +7,6 @@ from clingo.ast import parse_string
 
 from tests.xpit.test_main import TEST_DIR
 from xpit.director.director import ExplanationDirector
-from xpit.explainer import program as program_module
 from xpit.explainer.program import ExplainablePortionTransformer, ProgramExplainer
 
 from ..utils import director_factory
@@ -18,7 +17,7 @@ class MockBuilder:
     def __init__(self, control=None):
         self.control = control
 
-    def add(self, *args, **kwargs):
+    def add(self, *args, **kwargs):  # nocoverage
         pass  # Does nothing, just a placeholder for the real method
 
 

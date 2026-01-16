@@ -27,13 +27,13 @@ class Explainer(ABC):
         self.control = control
 
     @abstractmethod
-    def setup_before_grounding(self) -> int:
+    def setup_before_grounding(self) -> int:  # nocoverage
         pass
 
     @abstractmethod
-    def assign_eunit_budget(self, eunits: List[EUnit]) -> None:
+    def assign_eunit_budget(self, eunits: List[EUnit]) -> None:  # nocoverage
         pass
 
     @abstractmethod
-    def get_explainable_portions(self, eunit: EUnit) -> List[EPortion]:
+    def get_explainable_portions(self, eunit: EUnit) -> List[EPortion]:  # nocoverage
         pass

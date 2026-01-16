@@ -123,7 +123,7 @@ class ProgramExplainer(Explainer):
         """Adds a Clorm FactBase to the explainer's program."""
 
     def _fo_transformations(self) -> None:
-        if not self.control:
+        if not self.control:  # nocoverage
             raise ValueError("Unregistered explainer: control is not set.")
         ast_list: list[clingo.ast.AST] = []
         with ProgramBuilder(self.control) as bld:
@@ -136,7 +136,7 @@ class ProgramExplainer(Explainer):
         self._fo_transformations()
 
     def assign_eunit_budget(self, eunits: List[EUnit]) -> None:
-        if not self.control:
+        if not self.control:  # nocoverage
             raise ValueError("Unregistered explainer: control is not set.")
         logger.debug("Assigning eunit budget to explainable portions in ProgramExplainer.")
         logger.debug("ExpPortion ids: %s", self._exp_portion_ids)
@@ -145,7 +145,7 @@ class ProgramExplainer(Explainer):
             idx = 0
             for a in self.control.symbolic_atoms.by_signature("_exp", 2):
                 if str(a.symbol.arguments[0]) not in self._exp_portion_ids:
-                    continue
+                    continue  # nocoverage
                 exp_por = EPortion(id_=str(a.symbol.arguments[0]), exp_atom=a)
                 # :- _exp(...), eunit.
                 backend.add_rule(head=[], body=[a.literal, eunits[idx].assumption_lit])

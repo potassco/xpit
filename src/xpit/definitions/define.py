@@ -15,7 +15,7 @@ class ExplanationUnit:
 
     assumption_lit: int
 
-    def __hash__(self):  # nocoverage
+    def __hash__(self):
         return hash(self.assumption_lit)
 
 

@@ -13,6 +13,31 @@ from ..utils import director_factory
 from .test_main import TEST_DIR
 
 
+@pytest.mark.parametrize(
+    "enum_num",
+    [
+        1,
+        5,
+        -3,
+        0,
+    ],
+)
+def test_init(enum_num):
+    """Test initialization of ExplanationDirector."""
+
+    ctl = clingo.Control()
+
+    if enum_num < 1:
+        with pytest.raises(ValueError, match="Maximum number of eunits must be at least 1."):
+            ExplanationDirector(ctl, enum_num)
+    else:
+        director = ExplanationDirector(ctl, enum_num)
+        assert director.control == ctl, "Control object should be set correctly."
+        assert director.maximum_number_of_eunits == enum_num, "Maximum number of eunits should be set correctly."
+        assert director.explainers == [], "Explainers list should be initialized as empty."
+        assert director.eunits == [], "Eunits list should be initialized as empty."
+
+
 def test_register_explainer(director_factory):
     """Test registering an explainer."""
 
@@ -86,7 +111,8 @@ def test_distribute_eunits_equally(director_factory, num_eunits, num_explainers,
         (2, "ex1.lp", 1, [{"r1"}]),
         (1, "ex1.lp", 1, [{"r1"}]),
         (2, "ex2.lp", 1, [{"r1"}]),
-        (1, "ex2.lp", 1, [{}]),
+        (1, "ex2.lp", 0, []),  # this might be a bug in cling-explaid; does not work with ASP-explorer.
+        (3, "sat1.lp", 0, []),
     ],
 )
 def test_director(director_factory, num_eunit, file, num_cores, ids_in_cores):

@@ -25,7 +25,7 @@ class ExplanationDirector:
         self.maximum_number_of_eunits = maximum_number_of_eunits
         self.explainers: List[explainer.Explainer] = []
         self.eunits: List[EUnit] = []
-        self._core_comp_explorer = ExplorerAsp
+        self._core_comp_explorer = ExplorerPowerset
 
     def register_explainer(self, explainer: "explainer.Explainer") -> None:
         if len(self.explainers) == self.maximum_number_of_eunits:
