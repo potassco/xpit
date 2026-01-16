@@ -3,7 +3,7 @@ site_url: https://potassco.org/explanation_director_prototype
 site_description:
 repo_name: potasscosolutions/explanation_director_prototype
 repo_url: https://github.com/PotasscoSolutions/explanation-director-prototype
-copyright: Copyright &copy; 20245 Potassco
+copyright: Copyright &copy; 2025 Potassco
 
 extra_css:
   - _custom/css/extra.css

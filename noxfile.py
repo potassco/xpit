@@ -36,7 +36,7 @@ def typecheck(session):
     Typecheck the code using mypy.
     """
     session.install("-e", ".[typecheck]")
-    session.run("mypy", "--strict", "-p", "explanation_director_prototype", "-p", "tests")
+    session.run("mypy", "--strict", "-p", "xpit", "-p", "tests")
 
 
 @nox.session(python=PYTHON_VERSIONS)
