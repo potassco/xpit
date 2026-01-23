@@ -1,0 +1,37 @@
+"""
+Explainer abstract class
+"""
+
+from abc import ABC, abstractmethod
+from typing import List, Optional
+
+import clingo
+
+from xpit.definitions import ExplainablePortion as EPortion
+from xpit.definitions import ExplanationUnit as EUnit
+
+
+class Explainer(ABC):
+    """
+    Abstract Explainer class
+    """
+
+    def __init__(self) -> None:
+        """initializes the explainer instance"""
+        self.control: Optional[clingo.Control] = None
+
+    def set_control(self, control: clingo.Control) -> None:
+        """sets the clingo control object for the explainer"""
+        self.control = control
+
+    @abstractmethod
+    def setup_before_grounding(self) -> None:  # nocoverage
+        """sets up the explainer before grounding"""
+
+    @abstractmethod
+    def assign_eunit_budget(self, eunits: List[EUnit]) -> None:  # nocoverage
+        """assigns eunit budget to explainable portions"""
+
+    @abstractmethod
+    def get_explainable_portions(self, eunit: EUnit) -> List[EPortion]:  # nocoverage
+        """gets the explainable portions bound to the given eunit"""

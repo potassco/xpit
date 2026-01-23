@@ -11,7 +11,8 @@ from . import logging
 
 __all__ = ["get_parser"]
 
-VERSION = metadata.version("explanation_director_prototype")
+VERSION = metadata.version("xpit")
+# TODO: rework or get rid of parser.
 
 
 def get_parser() -> ArgumentParser:
@@ -19,10 +20,10 @@ def get_parser() -> ArgumentParser:
     Return the parser for command line options.
     """
     parser = ArgumentParser(
-        prog="explanation_director_prototype",
+        prog="xpit",
         description=dedent(
             """\
-            explanation_director_prototype
+            xpit
             filldescription
             """
         ),
