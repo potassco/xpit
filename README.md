@@ -1,4 +1,4 @@
-# explanation_director_prototype
+# xpit
 
 ## Preliminary Installation Instructions during Development:
 
@@ -23,7 +23,7 @@ pip install .
 Run the following for basic usage information:
 
 ```bash
-explanation_director_prototype -h
+xpit -h
 ```
 
 To generate and open the documentation, run
@@ -51,7 +51,7 @@ command: Together with the explanation director, there is an encoding given.
 You can run this with the following command (--outf=3 mutes the clingo prints):
 
 ```sh
-python src/explanation_director_prototype/exp_director.py resources/eventschedule_orig.lp resources/art_event_orig.lp --assumpt-num=10 --outf=3
+python src/xpit/exp_director.py resources/eventschedule_orig.lp resources/art_event_orig.lp --assumpt-num=10 --outf=3
 ```
 
 Instructions to install and use `nox` can be found in

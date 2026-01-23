@@ -26,4 +26,4 @@ Your participation keeps our project thriving. Thank you for being part of our
 community!
 
 !!! info
-    *explanation_director_prototype* is part of the [Potassco](https://potassco.org) suite.
+    *xpit* is part of the [Potassco](https://potassco.org) suite.

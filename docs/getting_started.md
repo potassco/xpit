@@ -10,14 +10,14 @@ hide:
 === "Pip"
 
     ```console
-    pip install explanation_director_prototype
+    pip install xpit
     ```
 
 === "Development mode"
 
     ```console
-    git clone https://github.com/potassco/explanation_director_prototype.git/
-    cd explanation_director_prototype
+    git clone https://github.com/potassco/xpit.git/
+    cd xpit
     pip install -e .[all]
     ```
 
@@ -31,5 +31,5 @@ hide:
 Details about the command line usage can be found with:
 
 ```console
-explanation_director_prototype -h
+xpit -h
 ```

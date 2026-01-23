@@ -1,8 +1,8 @@
-site_name: explanation_director_prototype
-site_url: https://potassco.org/explanation_director_prototype
+site_name: xpit
+site_url: https://potassco.org/xpit
 site_description:
-repo_name: potasscosolutions/explanation_director_prototype
-repo_url: https://github.com/PotasscoSolutions/explanation-director-prototype
+repo_name: potasscosolutions/xpit
+repo_url: https://github.com/PotasscoSolutions/xpit
 copyright: Copyright &copy; 2025 Potassco
 
 extra_css:
@@ -61,7 +61,7 @@ theme:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/PotasscoSolutions/explanation-director-prototype
+      link: https://github.com/PotasscoSolutions/xpit
     - icon: potassco-logo
       link: https://potassco.org
   generator: false

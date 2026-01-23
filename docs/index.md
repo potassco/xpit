@@ -4,7 +4,7 @@ hide:
   - toc
 ---
 
-# explanation_director_prototype
+# xpit
 
 !!! info
-    *explanation_director_prototype* is part of the [Potassco](https://potassco.org) suite.
+    *xpit* is part of the [Potassco](https://potassco.org) suite.
