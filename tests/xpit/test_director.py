@@ -108,29 +108,33 @@ def test_distribute_eunits_equally(
 
 
 @pytest.mark.parametrize(
-    "num_eunit, file, num_cores, ids_in_cores",
+    "num_eunit, file, prog_str, num_cores, ids_in_cores",
     [
-        (3, "not_a_of_x.lp", 3, [{"r1"}]),
-        (2, "not_a_of_x.lp", 2, [{"r1"}]),
-        (4, "not_a_of_x.lp", 3, [{"r1"}]),
-        (2, "ex1.lp", 1, [{"r1"}]),
-        (1, "ex1.lp", 1, [{"r1"}]),
-        (2, "ex2.lp", 1, [{"r1"}]),
-        (1, "ex2.lp", 0, []),  # this might be a bug in cling-explaid; does not work with ASP-explorer.
-        (3, "sat1.lp", 0, []),
+        (3, "not_a_of_x.lp", "", 3, [{"r1"}]),
+        (2, "not_a_of_x.lp", "", 2, [{"r1"}]),
+        (4, "not_a_of_x.lp", "", 3, [{"r1"}]),
+        (2, "ex1.lp", "", 1, [{"r1"}]),
+        (1, "ex1.lp", "", 1, [{"r1"}]),
+        (2, "ex2.lp", "", 1, [{"r1"}]),
+        (1, "ex2.lp", "", 0, []),  # this might be a bug in cling-explaid; does not work with ASP-explorer.
+        (3, "sat1.lp", "", 0, []),
+        (1, "", 'a :- not _explain(r1, msg("",())). :-a. ', 1, [{"r1"}]),
     ],
 )
-def test_director(
+def test_director(  # pylint: disable=too-many-positional-arguments
     director_factory: Callable[[int], ExplanationDirector],
     num_eunit: int,
     file: str,
+    prog_str: str,
     num_cores: int,
     ids_in_cores: list[set[str]],
 ) -> None:
     """test ExplanationDirector usage."""
 
     director = director_factory(num_eunit)
-    explainer = ProgramExplainer(lp_files=[str(TEST_DIR.joinpath(f"res/{file}"))])
+    explainer = ProgramExplainer(
+        lp_files=[str(TEST_DIR.joinpath(f"res/{file}"))] if file else [], lp_strings=[prog_str] if prog_str else []
+    )
     director.register_explainer(explainer)
     director.setup_before_grounding()
     director.control.ground([("base", [])])

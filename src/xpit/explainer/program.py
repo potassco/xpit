@@ -5,7 +5,7 @@ ASP Program based explainer
 from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
-from typing import Generator, List, Sequence, Union
+from typing import Generator, List, Optional, Sequence, Union
 
 import clingo
 from clingo.ast import (
@@ -16,6 +16,7 @@ from clingo.ast import (
     Rule,
     Sign,
     parse_files,
+    parse_string,
 )
 from clorm import FactBase
 
@@ -102,16 +103,23 @@ class ProgramExplainer(Explainer):
     assigned budget to explainable portions.
     """
 
-    def __init__(self, lp_files: Sequence[Union[str, Path]]) -> None:
+    def __init__(
+        self, lp_files: Optional[Sequence[Union[str, Path]]] = None, lp_strings: Optional[Sequence[str]] = None
+    ) -> None:
         """initializes the ProgramExplainer with given LP files."""
         super().__init__()
-        self.lp_files = list(lp_files)
+        self.lp_files = list(lp_files) if lp_files is not None else []
+        self.lp_strings = list(lp_strings) if lp_strings is not None else []
         self._exp_portion_ids: list[str] = []
         self._binding: defaultdict[EUnit, List[EPortion]] = defaultdict(list)
 
     def add_lp_file(self, lp_file: Union[str, Path]) -> None:
         """Adds an LP file to the explainer's list of LP files."""
         self.lp_files.append(lp_file)
+
+    def add_lp_string(self, lp_string: str) -> None:
+        """Adds an LP string to the explainer's list of LP strings."""
+        self.lp_strings.append(lp_string)
 
     def add_factbase(self, factbase: FactBase) -> None:
         """Adds a Clorm FactBase to the explainer's program."""
@@ -124,6 +132,8 @@ class ProgramExplainer(Explainer):
         with ProgramBuilder(self.control) as bld:
             t = ExplainablePortionTransformer(builder=bld)
             parse_files([str(f) for f in self.lp_files], ast_list.append)
+            for lp_string in self.lp_strings:
+                parse_string(lp_string, ast_list.append)
             t.process_ast_list(ast_list)
             self._exp_portion_ids = t.exp_portion_ids
 
