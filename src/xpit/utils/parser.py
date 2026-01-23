@@ -1,0 +1,68 @@
+"""
+The command line parser for the project.
+"""
+
+from argparse import ArgumentParser
+from importlib import metadata
+from textwrap import dedent
+from typing import Any, Optional, cast
+
+from . import logging
+
+__all__ = ["get_parser"]
+
+VERSION = metadata.version("xpit")
+# TODO: rework or get rid of parser.
+
+
+def get_parser() -> ArgumentParser:
+    """
+    Return the parser for command line options.
+    """
+    parser = ArgumentParser(
+        prog="xpit",
+        description=dedent(
+            """\
+            xpit
+            filldescription
+            """
+        ),
+    )
+    levels = [
+        ("error", logging.ERROR),
+        ("warning", logging.WARNING),
+        ("info", logging.INFO),
+        ("debug", logging.DEBUG),
+    ]
+
+    def get(levels: list[tuple[str, int]], name: str) -> Optional[int]:
+        for key, val in levels:
+            if key == name:
+                return val
+        return None  # nocoverage
+
+    parser.add_argument(
+        "--log",
+        "-l",
+        default="warning",
+        choices=[val for _, val in levels],
+        metavar=f"{{{','.join(key for key, _ in levels)}}}",
+        help="set log level [%(default)s]",
+        type=cast(Any, lambda name: get(levels, name)),
+    )
+
+    parser.add_argument("--version", "-v", action="version", version=f"%(prog)s {VERSION}")
+
+    # TODO: rm or use this after decision whether there is a check of input files.
+    # parser.add_argument(
+    #     "infiles", nargs="*", type=Path, help="Input files to be processed."
+    # )
+
+    parser.add_argument(
+        "--assumpt-num",
+        type=int,
+        default=10,
+        help="Set the assumptionbudget. [%(default)s]",
+    )
+
+    return parser

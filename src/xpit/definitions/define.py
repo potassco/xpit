@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from clingo.symbolic_atoms import SymbolicAtom
 
+
 @dataclass
 class ExplanationUnit:
     """
@@ -14,7 +15,7 @@ class ExplanationUnit:
 
     assumption_lit: int
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.assumption_lit)
 
 
@@ -27,5 +28,5 @@ class ExplainablePortion:
     id_: str
     exp_atom: SymbolicAtom
 
-    def __repr__(self):
-        return "ExplainablePortion(id=%s, exp_atom=%s)" % (self.id_, str(self.exp_atom.symbol))
+    def __repr__(self) -> str:  # nocoverage
+        return f"ExplainablePortion(id={self.id_}, exp_atom={self.exp_atom.symbol})"

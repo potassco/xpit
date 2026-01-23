@@ -6,9 +6,9 @@ from io import StringIO
 
 import pytest
 
-from explanation_director_prototype.utils import logging
-from explanation_director_prototype.utils.logging import configure_logging, get_logger
-from explanation_director_prototype.utils.parser import get_parser
+from xpit.utils import logging
+from xpit.utils.logging import configure_logging, get_logger
+from xpit.utils.parser import get_parser
 
 
 class TestMain:

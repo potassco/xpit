@@ -29,10 +29,13 @@ doc = ["mkdocs", "mkdocs-material", "mkdocstrings[python]", "mkdoclingo"]
 dev = ["xpit[test,typecheck,lint_pylint]"]
 
 [project.scripts]
-explanation_director_prototype = "xpit.__main__:main"
+xpit = "xpit.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"xpit" = ["py.typed"]
 
 [tool.setuptools_scm]
 version_scheme = "python-simplified-semver"
@@ -79,5 +82,5 @@ omit = ["*/xpit/__main__.py"]
 exclude_lines = ["assert", "nocoverage"]
 
 [tool.mypy]
-exclude = ["build", "resources", "site", "noxfile.py"]
+exclude = ["build", "examples", "site", "noxfile.py"]
 strict = true
