@@ -20,11 +20,13 @@ class ExplanationDirector:
     Explanation Director class that manages explainer modules and allocates an eunit budget.
     """
 
-    def __init__(self, control: clingo.Control, maximum_number_of_eunits: int, core_explorer: str = "powerset") -> None:
+    def __init__(self, control: clingo.Control,
+                 maximum_number_of_eunits: int, core_explorer: str = "powerset", dist_method: str = "equal") -> None:
         self.control = control
         if maximum_number_of_eunits < 1:
             raise ValueError("Maximum number of eunits must be at least 1.")
         self.maximum_number_of_eunits = maximum_number_of_eunits
+        self.dist_method = dist_method
         self.explainers: List[Explainer] = []
         self.eunits: List[EUnit] = []
         self._core_comp_explorer: type[Explorer]
@@ -69,10 +71,37 @@ class ExplanationDirector:
         floor = self.maximum_number_of_eunits // len(self.explainers)
         return [floor + (1 if i < mod_rest else 0) for i in range(len(self.explainers))]
 
+    def _distribute_eunits_by_request(self) -> List[int]:
+        """requests eunit budgets from explainers and distributes accordingly"""
+        requests = [exp.request_eunit_budget() for exp in self.explainers]
+        total_requested = sum(requests)
+        if total_requested <= self.maximum_number_of_eunits:
+            return requests
+        # Scale down requests proportionally
+        scaled = [max(1, (req * self.maximum_number_of_eunits) // total_requested) for req in requests]
+        # Adjust in case of rounding issues
+        add_value = 0
+        if sum(scaled) < self.maximum_number_of_eunits:
+            add_value = 1
+        elif sum(scaled) > self.maximum_number_of_eunits:
+            add_value = -1
+        while sum(scaled) != self.maximum_number_of_eunits:  # we need the while loop because of the max(1, ...) above
+            for i, _ in enumerate(scaled):
+                if scaled[i] > 1 or add_value == 1:
+                    scaled[i] += add_value
+                    if sum(scaled) == self.maximum_number_of_eunits:
+                        break
+        logger.debug("EUnit requests: %s", requests)
+        logger.debug("Scaled EUnit distribution: %s", scaled)
+        return scaled
+
     def setup_before_solving(self) -> None:
         """sets up the director and assigns eunit budgets to explainers before solving"""
         self._create_eunits()
-        distribution = self._distribute_eunits_equally()
+        if self.dist_method == "equal":
+            distribution = self._distribute_eunits_equally()
+        else:
+            distribution = self._distribute_eunits_by_request()
         start = 0
         for idx, exp in enumerate(self.explainers):
             exp.assign_eunit_budget(self.eunits[start : start + distribution[idx]])

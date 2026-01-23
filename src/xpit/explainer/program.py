@@ -131,7 +131,8 @@ class ProgramExplainer(Explainer):
         ast_list: list[clingo.ast.AST] = []
         with ProgramBuilder(self.control) as bld:
             t = ExplainablePortionTransformer(builder=bld)
-            parse_files([str(f) for f in self.lp_files], ast_list.append)
+            if self.lp_files:
+                parse_files([str(f) for f in self.lp_files], ast_list.append)
             for lp_string in self.lp_strings:
                 parse_string(lp_string, ast_list.append)
             t.process_ast_list(ast_list)
@@ -140,6 +141,17 @@ class ProgramExplainer(Explainer):
     def setup_before_grounding(self) -> None:
         """sets up the explainer before grounding by performing FO transformations"""
         self._fo_transformations()
+
+    def request_eunit_budget(self) -> int:
+        """request the number of eunits required for this explainer"""
+        if not self.control:
+            raise ValueError("Unregistered explainer: control is not set.")  # nocoverage
+        logger.debug("Requesting eunit budget for ProgramExplainer.")
+        return sum(
+            1
+            for a in self.control.symbolic_atoms.by_signature("_exp", 2)
+            if str(a.symbol.arguments[0]) in self._exp_portion_ids
+        )
 
     def assign_eunit_budget(self, eunits: List[EUnit]) -> None:
         """assigns eunit budget to explainable portions in the program"""
