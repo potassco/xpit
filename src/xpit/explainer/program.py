@@ -142,7 +142,7 @@ class ProgramExplainer(Explainer):
         """sets up the explainer before grounding by performing FO transformations"""
         self._fo_transformations()
 
-    def request_eunit_budget(self) -> int:
+    def get_eunit_request(self) -> int:
         """request the number of eunits required for this explainer"""
         if not self.control:
             raise ValueError("Unregistered explainer: control is not set.")  # nocoverage

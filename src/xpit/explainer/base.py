@@ -25,6 +25,10 @@ class Explainer(ABC):
         self.control = control
 
     @abstractmethod
+    def get_eunit_request(self) -> int:
+        """gets the number of eunits requested by the explainer"""
+
+    @abstractmethod
     def setup_before_grounding(self) -> None:  # nocoverage
         """sets up the explainer before grounding"""
 

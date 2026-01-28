@@ -138,3 +138,25 @@ def test_transform_rule(
     else:
         assert "marked for explanation" not in caplog.text
         assert "New rule added" not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "lp_strings, expected_request",
+    [
+        (['a :- not _explain(r1, msg("",())). :- a.'], 1),
+        (['b(X) :- X=1..5, not _explain(r2, msg("",(X))). :- b(X).'], 5),
+        (["c :- d."], 0),
+    ],
+)
+def test_get_eunit_request(
+    lp_strings: list[str],
+    expected_request: int,
+) -> None:
+    """test get_eunit_request of ProgramExplainer."""
+    explainer = ProgramExplainer(lp_strings=lp_strings)
+    ctl = clingo.Control()
+    explainer.set_control(ctl)
+    explainer.setup_before_grounding()
+    ctl.ground([("base", [])])
+    request = explainer.get_eunit_request()
+    assert request == expected_request, f"EUnit request should be {expected_request}."

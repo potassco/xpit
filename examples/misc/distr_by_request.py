@@ -6,6 +6,7 @@ import sys
 import clingo
 
 from xpit.director import ExplanationDirector
+from xpit.director.director import DistributionMethod
 from xpit.explainer import ProgramExplainer
 from xpit.utils.logging import configure_logging
 
@@ -13,17 +14,17 @@ configure_logging(sys.stderr, logging.DEBUG, sys.stderr.isatty())
 
 ctl = clingo.Control()
 
-PROGRAM1 ="""
+PROGRAM1 = """
 a(X) :- X=1..10, not _explain(r1, msg("",(X))).
 :- a(X).
 """
 
-PROGRAM2 ="""
+PROGRAM2 = """
 b(X) :- X=1..5, not _explain(r2, msg("",(X))).
 :- b(X).
 """
 
-expdir = ExplanationDirector(ctl, 6, dist_method="by_request")
+expdir = ExplanationDirector(ctl, 6)
 pe_enc_1 = ProgramExplainer(lp_strings=[PROGRAM1])
 pe_enc_2 = ProgramExplainer(lp_strings=[PROGRAM2])
 
@@ -34,7 +35,7 @@ expdir.setup_before_grounding()
 
 ctl.ground([("base", [])])
 
-expdir.setup_before_solving()
+expdir.setup_before_solving(dist_method=DistributionMethod.BY_REQUEST)
 
 for core in expdir.compute_minimal_core_eunits():
     print("\n")
@@ -42,3 +43,6 @@ for core in expdir.compute_minimal_core_eunits():
     print("Explanation atoms:")
     for exp_por in expdir.compute_explanation(core):
         print(exp_por.exp_atom.symbol)
+
+# expdir.setup_before_solving(tags=["r1", "r2"])
+# expdir.setup_before_solving(tags=["r1"])
