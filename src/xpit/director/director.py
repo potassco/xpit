@@ -1,7 +1,8 @@
 """Director module managing explainers and eunit budget allocation."""
 
 from enum import Enum
-from typing import Generator, List
+import re
+from typing import Callable, Generator, List, Optional
 
 import clingo
 from clingexplaid.mus import CoreComputer
@@ -19,6 +20,70 @@ logger = get_logger(__name__)
 ExplorerMethod = Enum("ExplorerMethod", {"ASP": "asp", "POWERSET": "powerset"})
 
 DistributionMethod = Enum("DistributionMethod", {"EQUAL": "equal", "BY_REQUEST": "by_request"})
+
+class Argument:
+    """Class representing an argument for rule tags."""
+
+    def __init__(self, value: str | int | re.Pattern | Callable[[str], bool] | Callable[[int], bool] | list["Argument"]) -> None:
+        self.value = value
+        
+    def matches(self, other: 'Argument') -> bool:
+        """Checks if this argument matches another argument based on type and value."""
+        # * is a wildcard that matches any value
+        if isinstance(self.value, str) and self.value == "*" or isinstance(other.value, str) and other.value == "*":
+            return True
+        if isinstance(self.value, re.Pattern):
+            if not isinstance(other.value, str) or not self.value.fullmatch(other.value):
+                return False
+        elif isinstance(other.value, re.Pattern):
+            if not isinstance(self.value, str) or not other.value.fullmatch(self.value):
+                return False
+        elif callable(self.value):
+            if (isinstance(other.value, str) or isinstance(other.value, int)):
+                return self.value(other.value)
+        elif callable(other.value):
+            if (isinstance(self.value, str) or isinstance(self.value, int)):
+                return other.value(self.value)
+        elif isinstance(self.value, list):
+            if not isinstance(other.value, list) or len(self.value) != len(other.value):
+                return False
+            for arg_self, arg_other in zip(self.value, other.value):
+                if not arg_self.matches(arg_other):
+                    return False
+        else:
+            if self.value != other.value:
+                return False
+        return True
+class RuleTag:
+    """Class representing a rule tag for explanation units."""
+
+    def __init__(self, tag: str, arguments: Optional[list[Argument]]) -> None:
+        self.tag = tag
+        self.arguments = arguments
+        
+    def matches(self, other: 'RuleTag') -> bool:
+        """Checks if this tag matches another tag based on name and arguments."""
+        if self.tag != other.tag:
+            return False
+        if self.arguments is None:
+            return True
+        if len(self.arguments) != len(other.arguments):
+            return False
+        for arg_self, arg_other in zip(self.arguments, other.arguments):
+            if not arg_self.matches(arg_other):
+                return False
+        return True
+    
+    
+class TagFilter:
+    """Class representing a tag filter for explanation units."""
+
+    def __init__(self, tags: List[str]) -> None:
+        self.tags = tags
+
+    def allows(self, tag: str) -> bool:
+        """Checks if the given tag is allowed by the filter."""
+        return tag in self.tags
 
 
 class ExplanationDirector:
@@ -96,7 +161,7 @@ class ExplanationDirector:
         logger.debug("Scaled EUnit distribution: %s", scaled)
         return scaled
 
-    def setup_before_solving(self, dist_method: DistributionMethod = DistributionMethod.EQUAL) -> None:
+    def setup_before_solving(self, tag_filter=None, dist_method: DistributionMethod = DistributionMethod.EQUAL,) -> None:
         """sets up the director and assigns eunit budgets to explainers before solving
         Args:
             dist_method (DistributionMethod): Method for distributing eunits among explainers.
