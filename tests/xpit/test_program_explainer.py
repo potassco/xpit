@@ -29,13 +29,28 @@ def test_add_lp_files(director_factory: Callable[[int], ExplanationDirector]) ->
     """Test adding LP files to ProgramExplainer."""
 
     director_factory(10)
-    explainer = ProgramExplainer(lp_files=[])
+    explainer = ProgramExplainer()
     assert not explainer.lp_files, "Initial lp_files should be empty."
     lp_files = ["test1.lp", "test2.lp"]
     for file in lp_files:
         explainer.add_lp_file(file)
         assert file in explainer.lp_files, f"LP file {file} should be added to explainer."
     assert len(explainer.lp_files) == len(lp_files), "Number of lp_files should match the number of added files."
+
+
+def test_add_lp_strings(director_factory: Callable[[int], ExplanationDirector]) -> None:
+    """Test adding LP strings to ProgramExplainer."""
+
+    director_factory(10)
+    explainer = ProgramExplainer(lp_files=[], lp_strings=[])
+    assert not explainer.lp_strings, "Initial lp_strings should be empty."
+    lp_strings = ["a :- b.", "c :- d."]
+    for lp_string in lp_strings:
+        explainer.add_lp_string(lp_string)
+        assert lp_string in explainer.lp_strings, f"LP string '{lp_string}' should be added to explainer."
+    assert len(explainer.lp_strings) == len(
+        lp_strings
+    ), "Number of lp_strings should match the number of added strings."
 
 
 @pytest.mark.parametrize(
@@ -123,3 +138,25 @@ def test_transform_rule(
     else:
         assert "marked for explanation" not in caplog.text
         assert "New rule added" not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "lp_strings, expected_request",
+    [
+        (['a :- not _explain(r1, msg("",())). :- a.'], 1),
+        (['b(X) :- X=1..5, not _explain(r2, msg("",(X))). :- b(X).'], 5),
+        (["c :- d."], 0),
+    ],
+)
+def test_get_eunit_request(
+    lp_strings: list[str],
+    expected_request: int,
+) -> None:
+    """test get_eunit_request of ProgramExplainer."""
+    explainer = ProgramExplainer(lp_strings=lp_strings)
+    ctl = clingo.Control()
+    explainer.set_control(ctl)
+    explainer.setup_before_grounding()
+    ctl.ground([("base", [])])
+    request = explainer.get_eunit_request()
+    assert request == expected_request, f"EUnit request should be {expected_request}."

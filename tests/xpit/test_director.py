@@ -108,29 +108,86 @@ def test_distribute_eunits_equally(
 
 
 @pytest.mark.parametrize(
-    "num_eunit, file, num_cores, ids_in_cores",
+    "lp_strings_per_explainer, num_eunits, expected_distribution",
     [
-        (3, "not_a_of_x.lp", 3, [{"r1"}]),
-        (2, "not_a_of_x.lp", 2, [{"r1"}]),
-        (4, "not_a_of_x.lp", 3, [{"r1"}]),
-        (2, "ex1.lp", 1, [{"r1"}]),
-        (1, "ex1.lp", 1, [{"r1"}]),
-        (2, "ex2.lp", 1, [{"r1"}]),
-        (1, "ex2.lp", 0, []),  # this might be a bug in cling-explaid; does not work with ASP-explorer.
-        (3, "sat1.lp", 0, []),
+        ([["d."], ['a(X) :- X=1..10, not _explain(r1,("",(X))). :- a(X).']], 2, [1, 1]),
+        ([["d."], ['a(X) :- X=1..10, not _explain(r1,("",())). :- a(X).']], 8, [0, 1]),
+        ([["d."], ['a(X) :- X=1..10, not _explain(r1,("",(X))). :- a(X).']], 8, [1, 7]),
+        (
+            [
+                ['b(X) :- X=1..5, not _explain(r1,("",(X))). :- b(X).'],
+                ['a(X) :- X=1..10, not _explain(r2,("",(X))). :- a(X).'],
+            ],
+            3,
+            [1, 2],
+        ),
+        ([['b(X) :- X=1..5, not _explain(r1,("",(X))). :- b(X).']], 2, [2]),
+        ([['b(X) :- X=1..5, not _explain(r1,("",())). :- b(X).']], 2, [1]),
+        (
+            [
+                ['b(X) :- X=1..5, not _explain(b1,("",(X))). :- b(X), c(X), d(X).'],
+                ['c(X) :- X=1..5, not _explain(c1,("",(X))).'],
+                ['d(X) :- X=1..5, not _explain(d1,("",(X))).'],
+            ],
+            4,
+            [2, 1, 1],
+        ),
     ],
 )
-def test_director(
+def test_distribute_eunits_by_request(
+    lp_strings_per_explainer: list[list[str]],
+    num_eunits: int,
+    expected_distribution: list[int],
+    director_factory: Callable[[int], ExplanationDirector],
+) -> None:
+    """Test distribution of eunits by request."""
+
+    director = director_factory(num_eunits)
+
+    # Register multiple explainers with given LP strings
+    for lp_strings in lp_strings_per_explainer:
+        explainer = ProgramExplainer(lp_files=[], lp_strings=lp_strings)
+        director.register_explainer(explainer)
+
+    director.setup_before_grounding()
+    director.control.ground([("base", [])])
+
+    distribution = director._distribute_eunits_by_request()  # pylint: disable=protected-access
+
+    assert len(distribution) == len(
+        expected_distribution
+    ), "Distribution list length should match number of explainers."
+    assert expected_distribution == distribution, "Distribution should match expected distribution."
+
+
+@pytest.mark.parametrize(
+    "num_eunit, file, prog_str, num_cores, ids_in_cores",
+    [
+        (3, "not_a_of_x.lp", "", 3, [{"r1"}]),
+        (2, "not_a_of_x.lp", "", 2, [{"r1"}]),
+        (4, "not_a_of_x.lp", "", 3, [{"r1"}]),
+        (2, "ex1.lp", "", 1, [{"r1"}]),
+        (1, "ex1.lp", "", 1, [{"r1"}]),
+        (2, "ex2.lp", "", 1, [{"r1"}]),
+        (1, "ex2.lp", "", 0, []),  # this might be a bug in cling-explaid; does not work with ASP-explorer.
+        (3, "sat1.lp", "", 0, []),
+        (1, "", 'a :- not _explain(r1, msg("",())). :-a. ', 1, [{"r1"}]),
+    ],
+)
+def test_director(  # pylint: disable=too-many-positional-arguments
     director_factory: Callable[[int], ExplanationDirector],
     num_eunit: int,
     file: str,
+    prog_str: str,
     num_cores: int,
     ids_in_cores: list[set[str]],
 ) -> None:
     """test ExplanationDirector usage."""
 
     director = director_factory(num_eunit)
-    explainer = ProgramExplainer(lp_files=[str(TEST_DIR.joinpath(f"res/{file}"))])
+    explainer = ProgramExplainer(
+        lp_files=[str(TEST_DIR.joinpath(f"res/{file}"))] if file else [], lp_strings=[prog_str] if prog_str else []
+    )
     director.register_explainer(explainer)
     director.setup_before_grounding()
     director.control.ground([("base", [])])
