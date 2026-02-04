@@ -191,6 +191,9 @@ class ProgramExplainer(Explainer):
             1
             for a in self.control.symbolic_atoms.by_signature("_exp", 2)
             if str(a.symbol.arguments[0]) in self._exp_portion_ids
+            # a = _exp(r1(1), msg("",(1)))
+            # a.symbol.arguments[0] = r1(1)
+            # r1(1) in [r1(X)] evaluates to False
         )
 
     def assign_eunit_budget(self, eunits: List[EUnit]) -> None:

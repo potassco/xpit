@@ -12,17 +12,20 @@ from xpit.utils.logging import configure_logging
 
 configure_logging(sys.stderr, logging.DEBUG, sys.stderr.isatty())
 
+
 ctl = clingo.Control()
 
 PROGRAM1 = """
-a(X) :- X=1..10, not _explain(r1, msg("",(X))).
+a(X) :- X=1..10, not _explain(r1(X), msg("",(X))).
 :- a(X).
+
 """
 
 PROGRAM2 = """
 b(X) :- X=1..5, not _explain(r2, msg("",(X))).
 :- b(X).
 """
+#expdir.setup_before_solving(ids=[("r1",[2,WildCard.All,lambda x: x<1]), ("r1", [11])])
 
 expdir = ExplanationDirector(ctl, 6)
 pe_enc_1 = ProgramExplainer(lp_strings=[PROGRAM1])
@@ -44,5 +47,4 @@ for core in expdir.compute_minimal_core_eunits():
     for exp_por in expdir.compute_explanation(core):
         print(exp_por.exp_atom.symbol)
 
-# expdir.setup_before_solving(tags=["r1", "r2"])
 # expdir.setup_before_solving(tags=["r1"])
