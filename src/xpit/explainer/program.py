@@ -8,13 +8,18 @@ from pathlib import Path
 from typing import Generator, List, Optional, Sequence, Union
 
 import clingo
+import clingo.ast   # avoid LSP warnings 'Submodule ast may not be ...'
 from clingo.ast import (
     Aggregate,
     ASTType,
     ConditionalLiteral,
+    Function,
+    Literal,
     ProgramBuilder,
     Rule,
     Sign,
+    SymbolicAtom,
+    SymbolicTerm,
     parse_files,
     parse_string,
 )
@@ -35,9 +40,10 @@ class ExplainablePortionTransformer:
     and converts it to an explainable rule.
     """
 
-    def __init__(self, builder: ProgramBuilder):
+    def __init__(self, builder: ProgramBuilder, fact_signatures: list[tuple[str,int]]):
         self.exp_portion_ids: list[str] = []
         self._builder = builder
+        self._fact_signatures = fact_signatures
 
     def register_ast(self, ast: clingo.ast.AST) -> None:
         """Registers the provided AST to the builder and the parsed rules list"""
@@ -51,6 +57,26 @@ class ExplainablePortionTransformer:
                     self.register_ast(new_ast)
             else:
                 self.register_ast(ast)
+
+    def check_fact_signatures(self, ast_list: List[clingo.ast.AST]) -> None:
+        for idx in range(len(ast_list)):
+            if (ast_list[idx].ast_type == ASTType.Rule
+                and ast_list[idx].body == []
+                and ast_list[idx].head.ast_type == ASTType.Literal
+                and (ast_list[idx].head.atom.symbol.name, len(ast_list[idx].head.atom.symbol.arguments)) in self._fact_signatures
+            ):
+                ast_list[idx] = self._tag_rule_via_signature(ast_list[idx])
+
+    def _tag_rule_via_signature(self, fact_ast: clingo.ast.AST) -> clingo.ast.AST:
+        loc = fact_ast.location
+        eportion_id = Function(loc, "via_sig", [fact_ast.head.atom.symbol], 0)
+        eportion_msg = Function(loc, "msg", [SymbolicTerm(loc, clingo.symbol.String("Fact {} is related to the no solutions result")),
+                                             Function(loc, "", [fact_ast.head.atom.symbol],0)], 0)
+        sym_atom_explain = SymbolicAtom(Function(loc, "_explain", [eportion_id, eportion_msg], 0))
+        explain_lit = Literal(loc, Sign.Negation, sym_atom_explain)
+        new_rule = Rule(loc, fact_ast.head, [explain_lit]) 
+        logger.debug("Generating new tagged rule via fact signature: %s", new_rule)
+        return new_rule
 
     def _transform_rule(self, ast: clingo.ast.AST) -> Generator[clingo.ast.AST]:
         """transforms a rule AST into 2 rules if it is marked for explanation"""
@@ -104,12 +130,14 @@ class ProgramExplainer(Explainer):
     """
 
     def __init__(
-        self, lp_files: Optional[Sequence[Union[str, Path]]] = None, lp_strings: Optional[Sequence[str]] = None
+        self, lp_files: Optional[Sequence[Union[str, Path]]] = None, lp_strings: Optional[Sequence[str]] = None,
+        fact_signatures: Optional[Sequence[tuple[str,int]]] = None
     ) -> None:
         """initializes the ProgramExplainer with given LP files."""
         super().__init__()
         self.lp_files = list(lp_files) if lp_files is not None else []
         self.lp_strings = list(lp_strings) if lp_strings is not None else []
+        self.fact_signatures = list(fact_signatures) if fact_signatures is not None else [] 
         self._exp_portion_ids: list[str] = []
         self._binding: defaultdict[EUnit, List[EPortion]] = defaultdict(list)
 
@@ -130,11 +158,12 @@ class ProgramExplainer(Explainer):
             raise ValueError("Unregistered explainer: control is not set.")
         ast_list: list[clingo.ast.AST] = []
         with ProgramBuilder(self.control) as bld:
-            t = ExplainablePortionTransformer(builder=bld)
+            t = ExplainablePortionTransformer(builder=bld, fact_signatures=self.fact_signatures)
             if self.lp_files:
                 parse_files([str(f) for f in self.lp_files], ast_list.append)
             for lp_string in self.lp_strings:
                 parse_string(lp_string, ast_list.append)
+            t.check_fact_signatures(ast_list)
             t.process_ast_list(ast_list)
             self._exp_portion_ids = t.exp_portion_ids
 
