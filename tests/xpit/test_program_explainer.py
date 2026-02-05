@@ -124,7 +124,7 @@ def test_transform_rule(
     ast_nodes: list[clingo.ast.AST] = []
     parse_string(rule_str, ast_nodes.append)
     ast = ast_nodes[1]
-    transformer = ExplainablePortionTransformer(builder=MockBuilder())  # type: ignore
+    transformer = ExplainablePortionTransformer(builder=MockBuilder(), fact_signatures=[])  # type: ignore
     with caplog.at_level("DEBUG"):
         t_asts = list(transformer._transform_rule(ast))  # pylint: disable=protected-access
 
