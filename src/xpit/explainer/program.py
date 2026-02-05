@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Generator, List, Optional, Sequence, Union
 
 import clingo
-import clingo.ast   # avoid LSP warnings 'Submodule ast may not be ...'
+import clingo.ast  # avoid LSP warnings 'Submodule ast may not be ...'
 from clingo.ast import (
     Aggregate,
     ASTType,
@@ -40,7 +40,7 @@ class ExplainablePortionTransformer:
     and converts it to an explainable rule.
     """
 
-    def __init__(self, builder: ProgramBuilder, fact_signatures: list[tuple[str,int]]):
+    def __init__(self, builder: ProgramBuilder, fact_signatures: list[tuple[str, int]]):
         self.exp_portion_ids: list[str] = []
         self._builder = builder
         self._fact_signatures = fact_signatures
@@ -61,20 +61,26 @@ class ExplainablePortionTransformer:
     def check_fact_signatures(self, ast_list: List[clingo.ast.AST]) -> None:
         """Check a list of ASTs to find taggable facts regarding the fact signatures"""
         for idx, ast in enumerate(ast_list):
-            if (ast.ast_type == ASTType.Rule
+            if (
+                ast.ast_type == ASTType.Rule
                 and ast.body == []
                 and ast.head.ast_type == ASTType.Literal
-                and (ast.head.atom.symbol.name, len(ast.head.atom.symbol.arguments))
-                    in self._fact_signatures
+                and (ast.head.atom.symbol.name, len(ast.head.atom.symbol.arguments)) in self._fact_signatures
             ):
                 ast_list[idx] = self._tag_rule_via_signature(ast)
 
     def _tag_rule_via_signature(self, fact_ast: clingo.ast.AST) -> clingo.ast.AST:
         loc = fact_ast.location
         eportion_id = Function(loc, "via_sig", [fact_ast.head.atom.symbol], 0)
-        eportion_msg = Function(loc, "msg", [
-                            SymbolicTerm(loc, clingo.symbol.String("Fact {} is related to the no solutions result")),
-                            Function(loc, "", [fact_ast.head.atom.symbol],0)], 0)
+        eportion_msg = Function(
+            loc,
+            "msg",
+            [
+                SymbolicTerm(loc, clingo.symbol.String("Fact {} is related to the no solutions result")),
+                Function(loc, "", [fact_ast.head.atom.symbol], 0),
+            ],
+            0,
+        )
         sym_atom_explain = SymbolicAtom(Function(loc, "_explain", [eportion_id, eportion_msg], 0))
         explain_lit = Literal(loc, Sign.Negation, sym_atom_explain)
         new_rule = Rule(loc, fact_ast.head, [explain_lit])
@@ -133,8 +139,10 @@ class ProgramExplainer(Explainer):
     """
 
     def __init__(
-        self, lp_files: Optional[Sequence[Union[str, Path]]] = None, lp_strings: Optional[Sequence[str]] = None,
-        fact_signatures: Optional[Sequence[tuple[str,int]]] = None
+        self,
+        lp_files: Optional[Sequence[Union[str, Path]]] = None,
+        lp_strings: Optional[Sequence[str]] = None,
+        fact_signatures: Optional[Sequence[tuple[str, int]]] = None,
     ) -> None:
         """initializes the ProgramExplainer with given LP files."""
         super().__init__()
