@@ -59,22 +59,25 @@ class ExplainablePortionTransformer:
                 self.register_ast(ast)
 
     def check_fact_signatures(self, ast_list: List[clingo.ast.AST]) -> None:
-        for idx in range(len(ast_list)):
-            if (ast_list[idx].ast_type == ASTType.Rule
-                and ast_list[idx].body == []
-                and ast_list[idx].head.ast_type == ASTType.Literal
-                and (ast_list[idx].head.atom.symbol.name, len(ast_list[idx].head.atom.symbol.arguments)) in self._fact_signatures
+        """Check a list of ASTs to find taggable facts regarding the fact signatures"""
+        for idx, ast in enumerate(ast_list):
+            if (ast.ast_type == ASTType.Rule
+                and ast.body == []
+                and ast.head.ast_type == ASTType.Literal
+                and (ast.head.atom.symbol.name, len(ast.head.atom.symbol.arguments))
+                    in self._fact_signatures
             ):
-                ast_list[idx] = self._tag_rule_via_signature(ast_list[idx])
+                ast_list[idx] = self._tag_rule_via_signature(ast)
 
     def _tag_rule_via_signature(self, fact_ast: clingo.ast.AST) -> clingo.ast.AST:
         loc = fact_ast.location
         eportion_id = Function(loc, "via_sig", [fact_ast.head.atom.symbol], 0)
-        eportion_msg = Function(loc, "msg", [SymbolicTerm(loc, clingo.symbol.String("Fact {} is related to the no solutions result")),
-                                             Function(loc, "", [fact_ast.head.atom.symbol],0)], 0)
+        eportion_msg = Function(loc, "msg", [
+                            SymbolicTerm(loc, clingo.symbol.String("Fact {} is related to the no solutions result")),
+                            Function(loc, "", [fact_ast.head.atom.symbol],0)], 0)
         sym_atom_explain = SymbolicAtom(Function(loc, "_explain", [eportion_id, eportion_msg], 0))
         explain_lit = Literal(loc, Sign.Negation, sym_atom_explain)
-        new_rule = Rule(loc, fact_ast.head, [explain_lit]) 
+        new_rule = Rule(loc, fact_ast.head, [explain_lit])
         logger.debug("Generating new tagged rule via fact signature: %s", new_rule)
         return new_rule
 
@@ -137,7 +140,7 @@ class ProgramExplainer(Explainer):
         super().__init__()
         self.lp_files = list(lp_files) if lp_files is not None else []
         self.lp_strings = list(lp_strings) if lp_strings is not None else []
-        self.fact_signatures = list(fact_signatures) if fact_signatures is not None else [] 
+        self.fact_signatures = list(fact_signatures) if fact_signatures is not None else []
         self._exp_portion_ids: list[str] = []
         self._binding: defaultdict[EUnit, List[EPortion]] = defaultdict(list)
 
