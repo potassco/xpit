@@ -143,24 +143,28 @@ def test_transform_rule(
 @pytest.mark.parametrize(
     "lp_str, sig_list, exp_lp_str",
     [
-        ("a(1).", [("a",1)], 'a(1) :- not _explain(via_sig(a(1)),msg("Fact {} is related to the no solutions result", (a(1),))).'),
-        ("a(1). b(1,2).", [("b",1), ("c",2)], "a(1). b(1,2)."),
+        (
+            "a(1).",
+            [("a", 1)],
+            'a(1) :- not _explain(via_sig(a(1)),msg("Fact {} is related to the no solutions result", (a(1),))).',
+        ),
+        ("a(1). b(1,2).", [("b", 1), ("c", 2)], "a(1). b(1,2)."),
     ],
 )
 def test_check_fact_signatures(
-        caplog: pytest.LogCaptureFixture, lp_str: str, sig_list: list[tuple[str, int]], exp_lp_str: str
+    caplog: pytest.LogCaptureFixture, lp_str: str, sig_list: list[tuple[str, int]], exp_lp_str: str
 ) -> None:
     """test check_fact_signatures and _tag_rule_via_signature from ExplainbalePortionTransformer"""
     ast_list: list[clingo.ast.AST] = []
     parse_string(lp_str, ast_list.append)
     transformer = ExplainablePortionTransformer(builder=MockBuilder(), fact_signatures=sig_list)  # type: ignore
     with caplog.at_level("DEBUG"):
-        transformer.check_fact_signatures(ast_list)  # check_fact_signatures changes the list via _tag_rule_via_signature
+        transformer.check_fact_signatures(ast_list)  # check_fact_signatures changes the ast_list
 
     expected_ast_list: list[clingo.ast.AST] = []
     parse_string(exp_lp_str, expected_ast_list.append)
-    assert all(ast in expected_ast_list for ast in ast_list), "Tagged ASTs via fact signatures must match expected ASTs."
-    assert all(ast in ast_list for ast in expected_ast_list), "Tagged ASTs via fact signatures must match expected ASTs."
+    assert all(ast in expected_ast_list for ast in ast_list), "Transformed ASTs must match expected ASTs."
+    assert all(ast in ast_list for ast in expected_ast_list), "Transformed ASTs must match expected ASTs."
 
 
 @pytest.mark.parametrize(
