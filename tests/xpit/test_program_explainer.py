@@ -152,14 +152,13 @@ def test_transform_rule(
     ],
 )
 def test_check_fact_signatures(
-    caplog: pytest.LogCaptureFixture, lp_str: str, sig_list: list[tuple[str, int]], exp_lp_str: str
+    lp_str: str, sig_list: list[tuple[str, int]], exp_lp_str: str
 ) -> None:
     """test check_fact_signatures and _tag_rule_via_signature from ExplainbalePortionTransformer"""
     ast_list: list[clingo.ast.AST] = []
     parse_string(lp_str, ast_list.append)
     transformer = ExplainablePortionTransformer(builder=MockBuilder(), fact_signatures=sig_list)  # type: ignore
-    with caplog.at_level("DEBUG"):
-        transformer.check_fact_signatures(ast_list)  # check_fact_signatures changes the ast_list
+    transformer.check_fact_signatures(ast_list)  # check_fact_signatures changes the ast_list
 
     expected_ast_list: list[clingo.ast.AST] = []
     parse_string(exp_lp_str, expected_ast_list.append)
