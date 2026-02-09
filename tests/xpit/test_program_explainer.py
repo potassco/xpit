@@ -151,9 +151,7 @@ def test_transform_rule(
         ("a(1). b(1,2).", [("b", 1), ("c", 2)], "a(1). b(1,2)."),
     ],
 )
-def test_check_fact_signatures(
-    lp_str: str, sig_list: list[tuple[str, int]], exp_lp_str: str
-) -> None:
+def test_check_fact_signatures(lp_str: str, sig_list: list[tuple[str, int]], exp_lp_str: str) -> None:
     """test check_fact_signatures and _tag_rule_via_signature from ExplainbalePortionTransformer"""
     ast_list: list[clingo.ast.AST] = []
     parse_string(lp_str, ast_list.append)
