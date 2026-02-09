@@ -1,8 +1,8 @@
 site_name: xpit
 site_url: https://potassco.org/xpit
 site_description:
-repo_name: potasscosolutions/xpit
-repo_url: https://github.com/PotasscoSolutions/xpit
+repo_name: potassco/xpit
+repo_url: https://github.com/potassco/xpit
 copyright: Copyright &copy; 2025 Potassco
 
 extra_css:
@@ -61,7 +61,7 @@ theme:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/PotasscoSolutions/xpit
+      link: https://github.com/potassco/xpit
     - icon: potassco-logo
       link: https://potassco.org
   generator: false

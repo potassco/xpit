@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/PotasscoSolutions/xpit.git"
+Homepage = "https://github.com/potassco/xpit.git"
 
 [project.optional-dependencies]
 format = ["black", "isort", "autoflake"]
