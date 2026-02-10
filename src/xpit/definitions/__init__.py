@@ -2,6 +2,6 @@
 Data classes package
 """
 
-from .define import ExplainablePortion, ExplanationUnit
+from .define import ExplanationPortion, ExplanationUnit
 
-__all__ = ["ExplanationUnit", "ExplainablePortion"]
+__all__ = ["ExplanationUnit", "ExplanationPortion"]

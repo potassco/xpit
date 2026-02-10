@@ -25,7 +25,7 @@ from clingo.ast import (
 )
 from clorm import FactBase
 
-from xpit.definitions import ExplainablePortion as EPortion
+from xpit.definitions import ExplanationPortion as EPortion
 from xpit.definitions import ExplanationUnit as EUnit
 from xpit.utils.logging import get_logger
 
@@ -34,9 +34,9 @@ from .base import Explainer
 logger = get_logger(__name__)
 
 
-class ExplainablePortionTransformer:
+class ExplanationPortionTransformer:
     """
-    A transformer that finds explainable portions in a logic program
+    A transformer that finds explanation portions in a logic program
     and converts it to an explainable rule.
     """
 
@@ -103,7 +103,7 @@ class ExplainablePortionTransformer:
                 exp_lit.sign = Sign.NoSign
                 assert len(lit.atom.symbol.arguments) == 2, "_explain should have two arguments."
                 if str(lit.atom.symbol.arguments[0]) in self.exp_portion_ids:
-                    logger.warning("Duplicate explainable portion id found: %s", str(lit.atom.symbol.arguments[0]))
+                    logger.warning("Duplicate explanation portion id found: %s", str(lit.atom.symbol.arguments[0]))
                 else:
                     self.exp_portion_ids.append(str(lit.atom.symbol.arguments[0]))
 
@@ -133,9 +133,9 @@ class ExplainablePortionTransformer:
 
 class ProgramExplainer(Explainer):
     """
-    Program based explainer checks for explainable portions in
+    Program based explainer checks for explanation portions in
     tagged input input logic programs. It also binds eunits from the
-    assigned budget to explainable portions.
+    assigned budget to explanation portions.
     """
 
     def __init__(
@@ -169,7 +169,7 @@ class ProgramExplainer(Explainer):
             raise ValueError("Unregistered explainer: control is not set.")
         ast_list: list[clingo.ast.AST] = []
         with ProgramBuilder(self.control) as bld:
-            t = ExplainablePortionTransformer(builder=bld, fact_signatures=self.fact_signatures)
+            t = ExplanationPortionTransformer(builder=bld, fact_signatures=self.fact_signatures)
             if self.lp_files:
                 parse_files([str(f) for f in self.lp_files], ast_list.append)
             for lp_string in self.lp_strings:
@@ -194,11 +194,11 @@ class ProgramExplainer(Explainer):
         )
 
     def assign_eunit_budget(self, eunits: List[EUnit]) -> None:
-        """assigns eunit budget to explainable portions in the program"""
+        """assigns eunit budget to explanation portions in the program"""
         if not self.control:  # nocoverage
             raise ValueError("Unregistered explainer: control is not set.")
-        logger.debug("Assigning eunit budget to explainable portions in ProgramExplainer.")
-        logger.debug("ExpPortion ids: %s", self._exp_portion_ids)
+        logger.debug("Assigning eunit budget to explanation portions in ProgramExplainer.")
+        logger.debug("EPortion ids: %s", self._exp_portion_ids)
         logger.debug("EUnits: %s", eunits)
         with self.control.backend() as backend:
             idx = 0
@@ -214,6 +214,6 @@ class ProgramExplainer(Explainer):
                 if idx + 1 < len(eunits):
                     idx += 1
 
-    def get_explainable_portions(self, eunit: EUnit) -> List[EPortion]:
-        """gets the explainable portions bound to the given eunit"""
+    def get_explanation_portions(self, eunit: EUnit) -> List[EPortion]:
+        """gets the explanation portions bound to the given eunit"""
         return self._binding[eunit]

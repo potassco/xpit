@@ -24,9 +24,9 @@ class ExplanationUnit:
 
 
 @dataclass
-class ExplainablePortion:
+class ExplanationPortion:
     """
-    Container class for the Explainable Portion
+    Container class for the Explanation Portion
     """
 
     id_: str
@@ -35,9 +35,9 @@ class ExplainablePortion:
     # TODO: use clorm for the exp_atom
 
     def __repr__(self) -> str:  # nocoverage
-        return f"ExplainablePortion(id={self.id_}, exp_atom={self.exp_atom.symbol})"
+        return f"ExplanationPortion(id={self.id_}, exp_atom={self.exp_atom.symbol})"
 
-    def get_message(self) -> str:
+    def get_message(self) -> str:  # nocoverage
         """returns the message formatted using load"""
         try:
             msg_data = tuple(str(d) for d in self.exp_atom.symbol.arguments[1].arguments[1].arguments)

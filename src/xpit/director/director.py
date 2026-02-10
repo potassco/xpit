@@ -8,7 +8,7 @@ from clingexplaid.mus import CoreComputer
 from clingexplaid.mus.explorers import Explorer, ExplorerAsp, ExplorerPowerset
 from clingo.symbol import Function
 
-from xpit.definitions import ExplainablePortion as EPortion
+from xpit.definitions import ExplanationPortion as EPortion
 from xpit.definitions import ExplanationUnit as EUnit
 from xpit.explainer.base import Explainer
 from xpit.utils.logging import get_logger
@@ -136,7 +136,7 @@ class ExplanationDirector:
         explanation = []
         for eu in core:
             for exp in self.explainers:
-                exp_portions = exp.get_explainable_portions(eu)
+                exp_portions = exp.get_explanation_portions(eu)
                 if exp_portions:
                     explanation.extend(exp_portions)
                     break
