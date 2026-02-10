@@ -7,7 +7,7 @@ from typing import List, Optional
 
 import clingo
 
-from xpit.definitions import ExplainablePortion as EPortion
+from xpit.definitions import ExplanationPortion as EPortion
 from xpit.definitions import ExplanationUnit as EUnit
 
 
@@ -34,8 +34,8 @@ class Explainer(ABC):
 
     @abstractmethod
     def assign_eunit_budget(self, eunits: List[EUnit]) -> None:  # nocoverage
-        """assigns eunit budget to explainable portions"""
+        """assigns eunit budget to explanation portions"""
 
     @abstractmethod
-    def get_explainable_portions(self, eunit: EUnit) -> List[EPortion]:  # nocoverage
-        """gets the explainable portions bound to the given eunit"""
+    def get_explanation_portions(self, eunit: EUnit) -> List[EPortion]:  # nocoverage
+        """gets the explanation portions bound to the given eunit"""

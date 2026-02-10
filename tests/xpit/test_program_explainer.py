@@ -8,7 +8,7 @@ from clingo.ast import parse_string
 
 from tests.xpit.test_main import TEST_DIR
 from xpit.director.director import ExplanationDirector
-from xpit.explainer.program import ExplainablePortionTransformer, ProgramExplainer
+from xpit.explainer.program import ExplanationPortionTransformer, ProgramExplainer
 
 from ..utils import fixture_director_factory  # pylint: disable=unused-import
 
@@ -75,10 +75,10 @@ def test_setup_before_grounding(
     with caplog.at_level("WARNING"):
         director.setup_before_grounding()
     # pylint: disable=protected-access
-    assert len(explainer._exp_portion_ids) == len(expected_ids), "There should be 1 explainable portion identified."
-    assert all(rid in explainer._exp_portion_ids for rid in expected_ids), "Expected explainable portion id not found."
+    assert len(explainer._exp_portion_ids) == len(expected_ids), "There should be 1 explanation portion identified."
+    assert all(rid in explainer._exp_portion_ids for rid in expected_ids), "Expected explanation portion id not found."
     if duplicate_warning:
-        assert "Duplicate explainable portion id found" in caplog.text
+        assert "Duplicate explanation portion id found" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -104,7 +104,7 @@ def test_assign_eunit_budget(
     director.control.ground([("base", [])])
     director.setup_before_solving()
 
-    assert len(explainer.get_explainable_portions(director.eunits[-1])) == expected_binding_size_of_last_eunit
+    assert len(explainer.get_explanation_portions(director.eunits[-1])) == expected_binding_size_of_last_eunit
     if expected_binding_size_of_last_eunit > 0:
         # pylint: disable=protected-access
         assert len(explainer._binding.keys()) == num_eunits, "All eunits should have bindings."
@@ -120,11 +120,11 @@ def test_assign_eunit_budget(
 def test_transform_rule(
     caplog: pytest.LogCaptureFixture, rule_str: str, exp_rule_str: str, is_marked_for_explanation: bool
 ) -> None:
-    """test _transform_rule of ExplainablePortionTransformer."""
+    """test _transform_rule of ExplanationPortionTransformer."""
     ast_nodes: list[clingo.ast.AST] = []
     parse_string(rule_str, ast_nodes.append)
     ast = ast_nodes[1]
-    transformer = ExplainablePortionTransformer(builder=MockBuilder(), fact_signatures=[])  # type: ignore
+    transformer = ExplanationPortionTransformer(builder=MockBuilder(), fact_signatures=[])  # type: ignore
     with caplog.at_level("DEBUG"):
         t_asts = list(transformer._transform_rule(ast))  # pylint: disable=protected-access
 
@@ -155,7 +155,7 @@ def test_check_fact_signatures(lp_str: str, sig_list: list[tuple[str, int]], exp
     """test check_fact_signatures and _tag_rule_via_signature from ExplainbalePortionTransformer"""
     ast_list: list[clingo.ast.AST] = []
     parse_string(lp_str, ast_list.append)
-    transformer = ExplainablePortionTransformer(builder=MockBuilder(), fact_signatures=sig_list)  # type: ignore
+    transformer = ExplanationPortionTransformer(builder=MockBuilder(), fact_signatures=sig_list)  # type: ignore
     transformer.check_fact_signatures(ast_list)  # check_fact_signatures changes the ast_list
 
     expected_ast_list: list[clingo.ast.AST] = []
