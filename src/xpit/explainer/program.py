@@ -5,7 +5,7 @@ ASP Program based explainer
 from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
-from typing import Generator, List, Optional, Sequence, Union
+from typing import Any, Generator, List, Optional, Sequence, Union
 
 import clingo
 import clingo.ast  # avoid LSP warnings 'Submodule ast may not be ...'
@@ -41,7 +41,7 @@ class ExplanationPortionTransformer:
     """
 
     def __init__(self, builder: ProgramBuilder, fact_signatures: list[tuple[str, int]]):
-        self.exp_portion_ids: list[str] = []
+        self.exp_portion_ids: list[tuple[str,int]] = []
         self._builder = builder
         self._fact_signatures = fact_signatures
 
@@ -57,6 +57,16 @@ class ExplanationPortionTransformer:
                     self.register_ast(new_ast)
             else:
                 self.register_ast(ast)
+                
+    @staticmethod
+    def _extract_tag_id(arg: clingo.ast.AST) -> tuple[str, int]:
+        """Extracts the tag id from the argument of _explain."""
+        if arg.ast_type == ASTType.SymbolicTerm:
+            return (arg.symbol.name, 0)
+        if arg.ast_type == ASTType.Function:
+            return (arg.name, len(arg.arguments))
+        else:
+            raise ValueError(f"Invalid argument for _explain: {arg}. Expected a symbolic or function term.")
 
     def check_fact_signatures(self, ast_list: List[clingo.ast.AST]) -> None:
         """Check a list of ASTs to find taggable facts regarding the fact signatures"""
@@ -102,10 +112,12 @@ class ExplanationPortionTransformer:
                 exp_lit.atom.symbol.name = "_exp"
                 exp_lit.sign = Sign.NoSign
                 assert len(lit.atom.symbol.arguments) == 2, "_explain should have two arguments."
-                if str(lit.atom.symbol.arguments[0]) in self.exp_portion_ids:
-                    logger.warning("Duplicate explanation portion id found: %s", str(lit.atom.symbol.arguments[0]))
+
+                tag_id = self._extract_tag_id(lit.atom.symbol.arguments[0])
+                if tag_id in self.exp_portion_ids:
+                    logger.warning("Duplicate explainable portion id found: %s", str(lit.atom.symbol.arguments[0]))
                 else:
-                    self.exp_portion_ids.append(str(lit.atom.symbol.arguments[0]))
+                    self.exp_portion_ids.append(tag_id)
 
                 # create new rule
                 new_rule = Rule(
@@ -196,8 +208,19 @@ class ProgramExplainer(Explainer):
             # r1(1) in [r1(X)] evaluates to False
         )
 
-    def assign_eunit_budget(self, eunits: List[EUnit]) -> None:
-        """assigns eunit budget to explanation portions in the program"""
+
+    def is_tag_active(self, tag: clingo.symbol.Symbol, tag_filters: Optional[list] = None) -> bool: # TODO: type of tag_filter
+        """Checks if the given tag is active based on the explainable portion ids."""
+        signature = (tag.name, len(tag.arguments)) if tag.type == clingo.SymbolType.Function else (tag.name, 0)
+        if signature not in self._exp_portion_ids:
+            return False
+        if tag_filters is None:
+            return True
+        return any(tag_filter.allows(tag) for tag_filter in tag_filters)
+                
+    
+    def assign_eunit_budget(self, eunits: List[EUnit], tag_filters: Optional[list] = None) -> None:
+        """assigns eunit budget to explainable portions in the program"""
         if not self.control:  # nocoverage
             raise ValueError("Unregistered explainer: control is not set.")
         logger.debug("Assigning eunit budget to explanation portions in ProgramExplainer.")
@@ -206,9 +229,13 @@ class ProgramExplainer(Explainer):
         with self.control.backend() as backend:
             idx = 0
             for a in self.control.symbolic_atoms.by_signature("_exp", 2):
-                if str(a.symbol.arguments[0]) not in self._exp_portion_ids:
+                # tag_id = extract_tag_id(a.symbol.arguments[0])
+                tag_id = str(a.symbol.arguments[0])
+                if not self.is_tag_active(a.symbol.arguments[0], tag_filters):
+                    continue
+                if tag_id not in self._exp_portion_ids:
                     continue  # nocoverage
-                exp_por = EPortion(id_=str(a.symbol.arguments[0]), exp_atom=a)
+                exp_por = EPortion(id_=tag_id, exp_atom=a)
                 # :- _exp(...), eunit.
                 backend.add_rule(head=[], body=[a.literal, eunits[idx].assumption_lit])
                 # _exp(...) :- not eunit.

@@ -54,14 +54,14 @@ class Argument:
             if self.value != other.value:
                 return False
         return True
-class RuleTag:
+class RuleId:
     """Class representing a rule tag for explanation units."""
 
     def __init__(self, tag: str, arguments: Optional[list[Argument]]) -> None:
         self.tag = tag
         self.arguments = arguments
         
-    def matches(self, other: 'RuleTag') -> bool:
+    def matches(self, other: clingo.symbol.Symbol) -> bool:
         """Checks if this tag matches another tag based on name and arguments."""
         if self.tag != other.tag:
             return False
@@ -75,15 +75,28 @@ class RuleTag:
         return True
     
     
-class TagFilter:
+class TagIdFilter:
     """Class representing a tag filter for explanation units."""
 
-    def __init__(self, tags: List[str]) -> None:
-        self.tags = tags
+    def __init__(self, tags: List[RuleId | str]) -> None:
+        self.tags = [
+            RuleId(tag, None) if isinstance(tag, str) else tag
+            for tag in tags
+        ]
+        
+
 
     def allows(self, tag: str) -> bool:
         """Checks if the given tag is allowed by the filter."""
         return tag in self.tags
+    
+"""
+Usage of TagFilter:
+
+tf1 = TagFilter(["r1", "r2"])
+tf2 = 
+
+"""
 
 
 class ExplanationDirector:
@@ -161,7 +174,7 @@ class ExplanationDirector:
         logger.debug("Scaled EUnit distribution: %s", scaled)
         return scaled
 
-    def setup_before_solving(self, tag_filter=None, dist_method: DistributionMethod = DistributionMethod.EQUAL,) -> None:
+    def setup_before_solving(self, dist_method: DistributionMethod = DistributionMethod.EQUAL, tag_filters=None) -> None:
         """sets up the director and assigns eunit budgets to explainers before solving
         Args:
             dist_method (DistributionMethod): Method for distributing eunits among explainers.
@@ -170,13 +183,13 @@ class ExplanationDirector:
         if dist_method == DistributionMethod.EQUAL:
             distribution = self._distribute_eunits_equally()
         elif dist_method == DistributionMethod.BY_REQUEST:  # nocoverage
-            distribution = self._distribute_eunits_by_request()
+            distribution = self._distribute_eunits_by_request() # TODO: add tag_filters to by_request method as well
         else:
             raise ValueError(f"Unknown distribution method: {dist_method}")  # nocoverage
         logger.debug("EUnit distribution among explainers: %s", distribution)
         start = 0
         for idx, exp in enumerate(self.explainers):
-            exp.assign_eunit_budget(self.eunits[start : start + distribution[idx]])
+            exp.assign_eunit_budget(self.eunits[start : start + distribution[idx]], tag_filters=tag_filters)
             start += distribution[idx]
 
     def compute_minimal_core_eunits(
