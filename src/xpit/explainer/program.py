@@ -27,12 +27,12 @@ from clorm import FactBase
 
 from xpit.definitions import ExplanationPortion as EPortion
 from xpit.definitions import ExplanationUnit as EUnit
+from xpit.definitions.define import TagId, TagIdFilter
 from xpit.utils.logging import get_logger
 
 from .base import Explainer
 
 logger = get_logger(__name__)
-
 
 class ExplanationPortionTransformer:
     """
@@ -41,7 +41,7 @@ class ExplanationPortionTransformer:
     """
 
     def __init__(self, builder: ProgramBuilder, fact_signatures: list[tuple[str, int]]):
-        self.exp_portion_ids: list[tuple[str,int]] = []
+        self.exp_portion_ids: TagIdFilter = TagIdFilter([])
         self._builder = builder
         self._fact_signatures = fact_signatures
 
@@ -57,16 +57,6 @@ class ExplanationPortionTransformer:
                     self.register_ast(new_ast)
             else:
                 self.register_ast(ast)
-                
-    @staticmethod
-    def _extract_tag_id(arg: clingo.ast.AST) -> tuple[str, int]:
-        """Extracts the tag id from the argument of _explain."""
-        if arg.ast_type == ASTType.SymbolicTerm:
-            return (arg.symbol.name, 0)
-        if arg.ast_type == ASTType.Function:
-            return (arg.name, len(arg.arguments))
-        else:
-            raise ValueError(f"Invalid argument for _explain: {arg}. Expected a symbolic or function term.")
 
     def check_fact_signatures(self, ast_list: List[clingo.ast.AST]) -> None:
         """Check a list of ASTs to find taggable facts regarding the fact signatures"""
@@ -113,7 +103,7 @@ class ExplanationPortionTransformer:
                 exp_lit.sign = Sign.NoSign
                 assert len(lit.atom.symbol.arguments) == 2, "_explain should have two arguments."
 
-                tag_id = self._extract_tag_id(lit.atom.symbol.arguments[0])
+                tag_id = TagId.from_ast(lit.atom.symbol.arguments[0])
                 if tag_id in self.exp_portion_ids:
                     logger.warning("Duplicate explainable portion id found: %s", str(lit.atom.symbol.arguments[0]))
                 else:
@@ -161,7 +151,7 @@ class ProgramExplainer(Explainer):
         self.lp_files = list(lp_files) if lp_files is not None else []
         self.lp_strings = list(lp_strings) if lp_strings is not None else []
         self.fact_signatures = list(fact_signatures) if fact_signatures is not None else []
-        self._exp_portion_ids: list[str] = []
+        self._exp_portion_ids: TagIdFilter = TagIdFilter([])
         self._binding: defaultdict[EUnit, List[EPortion]] = defaultdict(list)
 
     def add_lp_file(self, lp_file: Union[str, Path]) -> None:
@@ -202,22 +192,8 @@ class ProgramExplainer(Explainer):
         return sum(
             1
             for a in self.control.symbolic_atoms.by_signature("_exp", 2)
-            if str(a.symbol.arguments[0]) in self._exp_portion_ids
-            # a = _exp(r1(1), msg("",(1)))
-            # a.symbol.arguments[0] = r1(1)
-            # r1(1) in [r1(X)] evaluates to False
-        )
-
-
-    def is_tag_active(self, tag: clingo.symbol.Symbol, tag_filters: Optional[list] = None) -> bool: # TODO: type of tag_filter
-        """Checks if the given tag is active based on the explainable portion ids."""
-        signature = (tag.name, len(tag.arguments)) if tag.type == clingo.SymbolType.Function else (tag.name, 0)
-        if signature not in self._exp_portion_ids:
-            return False
-        if tag_filters is None:
-            return True
-        return any(tag_filter.allows(tag) for tag_filter in tag_filters)
-                
+            if self._exp_portion_ids.allows(TagId.from_clingo_symbol(a.symbol.arguments[0]))
+        )            
     
     def assign_eunit_budget(self, eunits: List[EUnit], tag_filters: Optional[list] = None) -> None:
         """assigns eunit budget to explainable portions in the program"""
@@ -230,12 +206,13 @@ class ProgramExplainer(Explainer):
             idx = 0
             for a in self.control.symbolic_atoms.by_signature("_exp", 2):
                 # tag_id = extract_tag_id(a.symbol.arguments[0])
-                tag_id = str(a.symbol.arguments[0])
-                if not self.is_tag_active(a.symbol.arguments[0], tag_filters):
-                    continue
-                if tag_id not in self._exp_portion_ids:
+                tag_id_instance = TagId.from_clingo_symbol(a.symbol.arguments[0])
+                # Check if tag_id active in this expalainer and in the user-provided tag filters
+                if not self._exp_portion_ids.allows(tag_id_instance):
                     continue  # nocoverage
-                exp_por = EPortion(id_=tag_id, exp_atom=a)
+                if tag_filters is not None and not tag_filters.allows(tag_id_instance):
+                    continue
+                exp_por = EPortion(id_=tag_id_instance, exp_atom=a)
                 # :- _exp(...), eunit.
                 backend.add_rule(head=[], body=[a.literal, eunits[idx].assumption_lit])
                 # _exp(...) :- not eunit.
