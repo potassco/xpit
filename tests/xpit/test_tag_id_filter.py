@@ -59,15 +59,16 @@ def test_allows_exceptions(arg_other: Argument):
 
 
 @pytest.mark.parametrize(
-        "atom_string, expected",
+        "atom_string, sig_only, expected",
         [
-    ("tag(id(1,2,3)).", TagId(name="id", arity=3, arguments=[1,2,3])),
-    ("tag(id).", TagId(name="id", arity=0)),
-    ("tag(id2(1)).", TagId(name="id2", arity=1, arguments=[1])),
+    ("tag(id(1,2,3)).", True, TagId(name="id", arity=3)),
+    ("tag(id).", True, TagId(name="id", arity=0)),
+    ("tag(id2(1)).", True, TagId(name="id2", arity=1)),
+    ("tag(id(1,'asdf',asd,X,(1,zwei))).", False, TagId(name="id", arity=5, arguments=[1,2,3]))
 ])
-def test_tag_id_init_from_ast(atom_string, expected):
+def test_tag_id_init_from_ast(atom_string, sig_only, expected):
     """test tag id init"""
     ast_list = []
     parse_string(atom_string, ast_list.append)
-    assert TagId.from_ast(ast_list[1].head.atom.symbol.arguments[0]).allows(expected)
+    assert TagId.from_ast(ast_list[1].head.atom.symbol.arguments[0], sig_only=sig_only) == expected
     

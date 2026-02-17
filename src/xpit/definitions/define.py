@@ -5,7 +5,7 @@ Class definitions for explanation related abstractions
 from dataclasses import dataclass
 from enum import Enum
 import re
-from typing import Optional, Callable 
+from typing import Any, Optional, Callable 
 
 import clingo
 import clingo.ast
@@ -65,7 +65,28 @@ class Argument:
         self.is_concrete = isinstance(value, (str, int))
         if isinstance(value, list):
             self.is_concrete = all(arg.is_concrete for arg in value)
+            
+    @classmethod
+    def from_ast(cls, arg: clingo.ast.AST):
+        if arg.ast_type == clingo.ast.ASTType.SymbolicTerm:
+            wrapped_value = arg.values()[1]
+            if wrapped_value.type == clingo.ast.SymbolType.Number:
+                value = wrapped_value.number
+            elif wrapped_value.type == clingo.ast.SymbolType.String:
+                value = wrapped_value.string
+            elif wrapped_value.type == clingo.ast.SymbolType.Function:
+                value = [cls.from_ast(arg_i) for arg_i in wrapped_value.arguments]
+            elif 
+        return Argument(WildCardArgument["*"])
+    
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Argument):
+            raise NotImplemented(f"__eq__ not implemented for type other than Argument.")
+        if isinstance(self.value) != isinstance(other.value):
+            return False
+        return self.value == other.value
         
+                
     def allows(self, other: 'Argument') -> bool:
         """Checks if this argument matches another concrete argument based on type and value."""
         if not other.is_concrete:
@@ -120,13 +141,26 @@ class TagId:
         else:
             return f"{self.name}/{self.arity}"
         
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, TagId):
+            raise NotImplemented(f"Comparisons of TagId with objects of type not implemented: {other} ")
+        if (self.name, self.arity) != (other.name, other.arity):
+            return False
+        if self.arguments is None:
+            return other.arguments is None
+        if len(self.arguments) != len(other.arguments):
+            return False
+        return all(s.arg == o.arg for s,o in zip(self.arguments, other.arguments))
+    
     @classmethod
-    def from_ast(cls, arg: clingo.ast.AST) -> "TagId":
+    def from_ast(cls, arg: clingo.ast.AST, sig_only=True) -> "TagId":
         """Construct a TagId from a clingo AST argument (SymbolicTerm or Function)."""
         if arg.ast_type == clingo.ast.ASTType.SymbolicTerm:
             return cls(arg.symbol.name, 0)
         if arg.ast_type == clingo.ast.ASTType.Function:
-            return cls(arg.name, len(arg.arguments))
+            if sig_only:
+                return cls(arg.name, len(arg.arguments))
+            return cls(arg.name, len(arg.arguments), [Argument.from_ast(arg_i) for arg_i in arg.arguments])
         raise ValueError(f"Invalid argument for _explain: {arg}. Expected a symbolic or function term.")
     
     @classmethod
