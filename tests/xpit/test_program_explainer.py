@@ -7,6 +7,7 @@ import pytest
 from clingo.ast import parse_string
 
 from tests.xpit.test_main import TEST_DIR
+from xpit.definitions.define import TagId
 from xpit.director.director import ExplanationDirector
 from xpit.explainer.program import ExplanationPortionTransformer, ProgramExplainer
 
@@ -56,15 +57,15 @@ def test_add_lp_strings(director_factory: Callable[[int], ExplanationDirector]) 
 @pytest.mark.parametrize(
     "file, expected_ids, duplicate_warning",
     [
-        ("not_a_of_x.lp", ["r1"], False),
-        ("dupl_ids.lp", ["r1"], True),
+        ("not_a_of_x.lp", [TagId("r1", 0)], False),
+        ("dupl_ids.lp", [TagId("r1", 0)], True),
     ],
 )
 def test_setup_before_grounding(
     caplog: pytest.LogCaptureFixture,
     director_factory: Callable[[int], "ExplanationDirector"],
     file: str,
-    expected_ids: list[str],
+    expected_ids: list[TagId],
     duplicate_warning: bool,
 ) -> None:
     """test setup_before_grounding of ProgramExplainer."""
@@ -76,9 +77,11 @@ def test_setup_before_grounding(
         director.setup_before_grounding()
     # pylint: disable=protected-access
     assert len(explainer._exp_portion_ids) == len(expected_ids), "There should be 1 explanation portion identified."
-    assert all(rid in explainer._exp_portion_ids for rid in expected_ids), "Expected explanation portion id not found."
+    assert all(
+        explainer._exp_portion_ids.allows(rid) for rid in expected_ids
+    ), "Expected explanation portion id not found."
     if duplicate_warning:
-        assert "Duplicate explanation portion id found" in caplog.text
+        assert "Duplicate explainable portion id found" in caplog.text
 
 
 @pytest.mark.parametrize(

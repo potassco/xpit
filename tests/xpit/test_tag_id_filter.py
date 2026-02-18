@@ -1,23 +1,22 @@
 """Test tag id filters"""
 
-
-
 import re
-from typing import Callable
+
 import pytest
+from clingo.ast import parse_string
 
 from xpit.definitions.define import Argument, TagId, WildCardArgument
-from clingo.ast import parse_string
+
 
 @pytest.mark.parametrize(
     "arg1, arg2, expected",
     [
         (Argument(5), Argument(5), True),
         (Argument("a"), Argument(5), False),
-        (Argument(lambda x: x<10), Argument(5), True),
+        (Argument(lambda x: x < 10), Argument(5), True),
         (Argument(lambda x: "mm" in x), Argument("summer"), True),
         (
-            Argument([Argument(lambda x: x%2==0), Argument(lambda x: len(x)<=4)]),
+            Argument([Argument(lambda x: x % 2 == 0), Argument(lambda x: len(x) <= 4)]),
             Argument([Argument(6), Argument("test")]),
             True,
         ),
@@ -25,7 +24,7 @@ from clingo.ast import parse_string
             Argument(WildCardArgument["*"]),
             Argument([Argument(6), Argument("test")]),
             True,
-        ),  
+        ),
         (
             Argument(re.compile("[a-d]{3,3}")),
             Argument("def"),
@@ -36,12 +35,10 @@ from clingo.ast import parse_string
             Argument("abc"),
             True,
         ),
-])
-def test_argument_allows(
-    arg1: Argument,
-    arg2: Argument,
-    expected):
-    
+    ],
+)
+def test_argument_allows(arg1: Argument, arg2: Argument, expected):
+
     assert arg1.allows(arg2) is expected, f"arg1= {arg1} allows arg2= {arg2} is not as expected= {expected}"
 
 
@@ -49,7 +46,7 @@ def test_argument_allows(
     "arg_other",
     [
         (Argument(lambda x: True)),
-        ]
+    ],
 )
 def test_allows_exceptions(arg_other: Argument):
     arg1 = Argument(1)
@@ -59,16 +56,30 @@ def test_allows_exceptions(arg_other: Argument):
 
 
 @pytest.mark.parametrize(
-        "atom_string, sig_only, expected",
-        [
-    ("tag(id(1,2,3)).", True, TagId(name="id", arity=3)),
-    ("tag(id).", True, TagId(name="id", arity=0)),
-    ("tag(id2(1)).", True, TagId(name="id2", arity=1)),
-    ("tag(id(1,'asdf',asd,X,(1,zwei))).", False, TagId(name="id", arity=5, arguments=[1,2,3]))
-])
+    "atom_string, sig_only, expected",
+    [
+        ("tag(id(1,2,3)).", True, TagId(name="id", arity=3)),
+        ("tag(id).", True, TagId(name="id", arity=0)),
+        ("tag(id2(1)).", True, TagId(name="id2", arity=1)),
+        (
+            """tag(id(1,"asdf",asd,X,(1,zwei))).""",
+            False,
+            TagId(
+                name="id",
+                arity=5,
+                arguments=[
+                    Argument(1),
+                    Argument("asdf"),
+                    Argument("asd"),
+                    Argument(WildCardArgument["*"]),
+                    Argument([Argument(1), Argument("zwei")]),
+                ],
+            ),
+        ),
+    ],
+)
 def test_tag_id_init_from_ast(atom_string, sig_only, expected):
     """test tag id init"""
     ast_list = []
     parse_string(atom_string, ast_list.append)
     assert TagId.from_ast(ast_list[1].head.atom.symbol.arguments[0], sig_only=sig_only) == expected
-    

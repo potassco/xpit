@@ -5,7 +5,7 @@ ASP Program based explainer
 from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Generator, List, Optional, Sequence, Union
+from typing import Generator, List, Optional, Sequence, Union
 
 import clingo
 import clingo.ast  # avoid LSP warnings 'Submodule ast may not be ...'
@@ -33,6 +33,7 @@ from xpit.utils.logging import get_logger
 from .base import Explainer
 
 logger = get_logger(__name__)
+
 
 class ExplanationPortionTransformer:
     """
@@ -104,7 +105,7 @@ class ExplanationPortionTransformer:
                 assert len(lit.atom.symbol.arguments) == 2, "_explain should have two arguments."
 
                 tag_id = TagId.from_ast(lit.atom.symbol.arguments[0])
-                if tag_id in self.exp_portion_ids:
+                if self.exp_portion_ids.allows(tag_id):
                     logger.warning("Duplicate explainable portion id found: %s", str(lit.atom.symbol.arguments[0]))
                 else:
                     self.exp_portion_ids.append(tag_id)
@@ -193,8 +194,8 @@ class ProgramExplainer(Explainer):
             1
             for a in self.control.symbolic_atoms.by_signature("_exp", 2)
             if self._exp_portion_ids.allows(TagId.from_clingo_symbol(a.symbol.arguments[0]))
-        )            
-    
+        )
+
     def assign_eunit_budget(self, eunits: List[EUnit], tag_filters: Optional[list] = None) -> None:
         """assigns eunit budget to explainable portions in the program"""
         if not self.control:  # nocoverage
