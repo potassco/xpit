@@ -11,6 +11,7 @@ from clingo.symbol import Function
 
 from xpit.definitions import ExplanationPortion as EPortion
 from xpit.definitions import ExplanationUnit as EUnit
+from xpit.definitions.define import TagIdFilter
 from xpit.explainer.base import Explainer
 from xpit.utils.logging import get_logger
 
@@ -97,7 +98,7 @@ class ExplanationDirector:
         logger.debug("Scaled EUnit distribution: %s", scaled)
         return scaled
 
-    def setup_before_solving(self, dist_method: DistributionMethod = DistributionMethod.EQUAL, tag_filters=None) -> None:
+    def setup_before_solving(self, dist_method: DistributionMethod = DistributionMethod.EQUAL, tag_filters:Optional[TagIdFilter]=None) -> None:
         """sets up the director and assigns eunit budgets to explainers before solving
         Args:
             dist_method (DistributionMethod): Method for distributing eunits among explainers.

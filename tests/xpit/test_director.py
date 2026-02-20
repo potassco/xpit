@@ -5,7 +5,7 @@ from typing import Callable
 import clingo
 import pytest
 
-from xpit.definitions.define import ExplanationUnit
+from xpit.definitions.define import ExplanationUnit, TagId
 from xpit.director.director import ExplanationDirector
 from xpit.explainer.program import ProgramExplainer
 
@@ -163,15 +163,15 @@ def test_distribute_eunits_by_request(
 @pytest.mark.parametrize(
     "num_eunit, file, prog_str, num_cores, ids_in_cores",
     [
-        (3, "not_a_of_x.lp", "", 3, [{"r1"}]),
-        (2, "not_a_of_x.lp", "", 2, [{"r1"}]),
-        (4, "not_a_of_x.lp", "", 3, [{"r1"}]),
-        (2, "ex1.lp", "", 1, [{"r1"}]),
-        (1, "ex1.lp", "", 1, [{"r1"}]),
-        (2, "ex2.lp", "", 1, [{"r1"}]),
+        (3, "not_a_of_x.lp", "", 3, [{TagId("r1", 0, [])}]),
+        (2, "not_a_of_x.lp", "", 2, [{TagId("r1", 0, [])}]),
+        (4, "not_a_of_x.lp", "", 3, [{TagId("r1", 0, [])}]),
+        (2, "ex1.lp", "", 1, [{TagId("r1", 0, [])}]),
+        (1, "ex1.lp", "", 1, [{TagId("r1", 0, [])}]),
+        (2, "ex2.lp", "", 1, [{TagId("r1", 0, [])}]),
         (1, "ex2.lp", "", 0, []),  # this might be a bug in cling-explaid; does not work with ASP-explorer.
         (3, "sat1.lp", "", 0, []),
-        (1, "", 'a :- not _explain(r1, msg("",())). :-a. ', 1, [{"r1"}]),
+        (1, "", 'a :- not _explain(r1, msg("",())). :-a. ', 1, [{TagId("r1", 0, [])}]),
     ],
 )
 def test_director(  # pylint: disable=too-many-positional-arguments

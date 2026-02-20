@@ -34,7 +34,7 @@ class ExplanationPortion:
     Container class for the Explanation Portion
     """
 
-    id_: str
+    id_: "TagId"
     exp_atom: SymbolicAtom
 
     # TODO: use clorm for the exp_atom
@@ -158,7 +158,7 @@ class TagId:
                 else:
                     self.arguments.append(arg)
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         if self.arity is None:
             return f"{self.name}/*"
         if self.arity == 0:
@@ -173,9 +173,12 @@ class TagId:
             return False
         if self.arguments is None:
             return other.arguments is None
-        if len(self.arguments) != len(other.arguments):
+        if other.arguments is None or len(self.arguments) != len(other.arguments):
             return False
         return all(s == o for s, o in zip(self.arguments, other.arguments))
+
+    def __hash__(self) -> int:
+        return hash((hash(self.name), hash(self.arity))) # TODO: maybe include arguments into hash
 
     @classmethod
     def from_ast(cls, arg: clingo.ast.AST, sig_only=True) -> "TagId":
