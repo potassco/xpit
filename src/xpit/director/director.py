@@ -1,8 +1,7 @@
 """Director module managing explainers and eunit budget allocation."""
 
 from enum import Enum
-import re
-from typing import Callable, Generator, List, Optional
+from typing import Generator, List, Optional
 
 import clingo
 from clingexplaid.mus import CoreComputer
@@ -98,7 +97,9 @@ class ExplanationDirector:
         logger.debug("Scaled EUnit distribution: %s", scaled)
         return scaled
 
-    def setup_before_solving(self, dist_method: DistributionMethod = DistributionMethod.EQUAL, tag_filters:Optional[TagIdFilter]=None) -> None:
+    def setup_before_solving(
+        self, dist_method: DistributionMethod = DistributionMethod.EQUAL, tag_filters: Optional[TagIdFilter] = None
+    ) -> None:
         """sets up the director and assigns eunit budgets to explainers before solving
         Args:
             dist_method (DistributionMethod): Method for distributing eunits among explainers.
@@ -107,7 +108,7 @@ class ExplanationDirector:
         if dist_method == DistributionMethod.EQUAL:
             distribution = self._distribute_eunits_equally()
         elif dist_method == DistributionMethod.BY_REQUEST:  # nocoverage
-            distribution = self._distribute_eunits_by_request() # TODO: add tag_filters to by_request method as well
+            distribution = self._distribute_eunits_by_request()  # TODO: add tag_filters to by_request method as well
         else:
             raise ValueError(f"Unknown distribution method: {dist_method}")  # nocoverage
         logger.debug("EUnit distribution among explainers: %s", distribution)

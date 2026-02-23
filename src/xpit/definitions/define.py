@@ -5,7 +5,7 @@ Class definitions for explanation related abstractions
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Protocol, Sequence, cast, overload
 
 import clingo
 import clingo.ast
@@ -52,7 +52,19 @@ class ExplanationPortion:
             raise err
 
 
-WildCardArgument = Enum("WildCardArgument", "*")  # TODO: use for tagging
+class WildCardArgument(Enum):
+    """Wildcard enum for allowing all values in an Argument"""
+
+    WILDCARD = "*"
+
+
+class StrIntPredicate(Protocol):
+    """Protocoll for mypy to deal with callable int->bool and str->bool"""
+
+    @overload
+    def __call__(self, x: str) -> bool: ...
+    @overload
+    def __call__(self, x: int) -> bool: ...
 
 
 class Argument:
@@ -61,21 +73,34 @@ class Argument:
     def __init__(
         self,
         value: (
-            str | int | re.Pattern | Callable[[str], bool] | Callable[[int], bool] | list["Argument"] | WildCardArgument
+            str
+            | int
+            | re.Pattern[str]
+            | Callable[[str], bool]
+            | Callable[[int], bool]
+            | list["Argument"]
+            | WildCardArgument
         ),
     ) -> None:
         """initializes an Argument with a value that can be a:
         string, integer (string and int are treated as concrete values),
         regex pattern, callable, list of Arguments (treated as concrete if all are concrete), or a wildcard."""
-        self.value = value
+        self.value: str | int | re.Pattern[str] | StrIntPredicate | list["Argument"] | WildCardArgument
+        if callable(value):
+            self.value = cast(StrIntPredicate, value)
+        else:
+            self.value = value
         self.is_concrete = isinstance(value, (str, int))
         if isinstance(value, list):
             self.is_concrete = all(arg.is_concrete for arg in value)
 
     @classmethod
-    def from_ast(cls, arg: clingo.ast.AST):
+    def from_ast(cls, arg: clingo.ast.AST) -> "Argument":
+        """Create Argument from clingo ast"""
         if arg.ast_type == clingo.ast.ASTType.SymbolicTerm:
+            value: str | int | list["Argument"] | WildCardArgument
             wrapped_value = arg.values()[1]
+            assert isinstance(wrapped_value, clingo.symbol.Symbol)
             if wrapped_value.type == clingo.symbol.SymbolType.Number:
                 value = wrapped_value.number
             elif wrapped_value.type == clingo.symbol.SymbolType.String:
@@ -84,17 +109,19 @@ class Argument:
                 value = wrapped_value.name
                 assert isinstance(value, str)
             else:
-                raise NotImplemented("Infimum and Supremum are not supported as Symbol type in tags.")
+                raise NotImplementedError("Infimum and Supremum are not supported as Symbol type in tags yet.")
             return Argument(value)
         if arg.ast_type == clingo.ast.ASTType.Variable:
-            return Argument(WildCardArgument["*"])
+            return Argument(WildCardArgument("*"))
         if arg.ast_type == clingo.ast.ASTType.Function:
             value = [cls.from_ast(arg_i) for arg_i in arg.arguments]
             return Argument(value)
+        raise ValueError("Could not create Argument from clingo ast input")
 
     def __eq__(self, other: Any) -> bool:
+        """Check equality of 2 Arguments"""
         if not isinstance(other, Argument):
-            raise NotImplemented(f"__eq__ not implemented for type other than Argument.")
+            return NotImplemented
         if type(self.value) != type(other.value):
             return False
         return self.value == other.value
@@ -103,13 +130,13 @@ class Argument:
         """Checks if this argument matches another concrete argument based on type and value."""
         if not other.is_concrete:
             raise ValueError(f"Other argument must be concrete (string or integer) for matching. Got: {other.value}")
-        if isinstance(self.value, WildCardArgument):
+        if self.value in WildCardArgument:
             return True
         if isinstance(self.value, re.Pattern):
             if not isinstance(other.value, str) or not re.match(self.value, other.value):
                 return False
         elif callable(self.value):
-            if isinstance(other.value, str) or isinstance(other.value, int):
+            if isinstance(other.value, (str, int)):
                 return self.value(other.value)
         elif isinstance(self.value, list):
             if not isinstance(other.value, list) or len(self.value) != len(other.value):
@@ -131,11 +158,11 @@ class TagId:
         name: str,
         arity: Optional[int] = None,
         arguments: Optional[
-            list[
+            Sequence[
                 Argument
                 | str
                 | int
-                | re.Pattern
+                | re.Pattern[str]
                 | Callable[[str], bool]
                 | Callable[[int], bool]
                 | list["Argument"]
@@ -163,12 +190,11 @@ class TagId:
             return f"{self.name}/*"
         if self.arity == 0:
             return self.name
-        else:
-            return f"{self.name}/{self.arity}"
+        return f"{self.name}/{self.arity}"
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, TagId):
-            raise NotImplemented(f"Comparisons of TagId with objects of type not implemented: {other} ")
+            return NotImplemented
         if (self.name, self.arity) != (other.name, other.arity):
             return False
         if self.arguments is None:
@@ -178,10 +204,10 @@ class TagId:
         return all(s == o for s, o in zip(self.arguments, other.arguments))
 
     def __hash__(self) -> int:
-        return hash((hash(self.name), hash(self.arity))) # TODO: maybe include arguments into hash
+        return hash((hash(self.name), hash(self.arity)))  # TODO: maybe include arguments into hash
 
     @classmethod
-    def from_ast(cls, arg: clingo.ast.AST, sig_only=True) -> "TagId":
+    def from_ast(cls, arg: clingo.ast.AST, sig_only: bool = True) -> "TagId":
         """Construct a TagId from a clingo AST argument (SymbolicTerm or Function)."""
         if arg.ast_type == clingo.ast.ASTType.SymbolicTerm:
             return cls(arg.symbol.name, 0)
@@ -195,7 +221,7 @@ class TagId:
     def from_clingo_symbol(cls, symbol: clingo.symbol.Symbol) -> "TagId":
         """Construct a TagId from a clingo Symbol (Function or String)."""
         if symbol.type == clingo.SymbolType.Function:
-            arguments = [Argument(cls._convert_clingo_symbol_to_argument(a)) for a in symbol.arguments]
+            arguments = [cls._convert_clingo_symbol_to_argument(a) for a in symbol.arguments]
             return cls(symbol.name, len(symbol.arguments), arguments)
         if symbol.type == clingo.SymbolType.String:
             return cls(symbol.string, 0, [])
@@ -223,7 +249,7 @@ class TagId:
     def allows(self, other: "TagId") -> bool:
         """Checks if this TagId allows another TagId based on name, arity, and arguments."""
         if not isinstance(other, TagId):
-            return NotImplemented
+            return ValueError("other: %s must be a TagId", other)
         if self.name != other.name:
             return False
         if self.arity is None:
@@ -234,7 +260,7 @@ class TagId:
             return True
         if len(self.arguments) != len(other.arguments):
             return False
-        return all(arg_self.matches(arg_other) for arg_self, arg_other in zip(self.arguments, other.arguments))
+        return all(arg_self == arg_other for arg_self, arg_other in zip(self.arguments, other.arguments))
 
 
 class TagIdFilter:
@@ -244,9 +270,12 @@ class TagIdFilter:
         """Initializes a TagIdFilter with a list of TagIds or strings
         (which are converted to TagIds with arity given (or None if not specified)).
         The filter allows tags that match any of the provided tags."""
-        self.tags = []
+        self.tags: list[TagId] = []
         for tag in tags:
-            self.append(tag)
+            if isinstance(tag, TagId):
+                self.tags.append(tag)
+            elif isinstance(tag, str):
+                self.tags.append(TagId(tag, None))
 
     def __len__(self) -> int:
         return len(self.tags)
@@ -262,8 +291,10 @@ class TagIdFilter:
                 try:
                     arity = int(arity_str)
                     self.tags.append(TagId(tag_id, arity))
-                except ValueError:
-                    raise ValueError(f"Invalid tag format: {tag}. Expected 'tag_id/arity' where arity is an integer.")
+                except ValueError as exc:
+                    raise ValueError(
+                        f"Invalid tag format: {tag}. Expected 'tag_id/arity' where arity is an integer."
+                    ) from exc
             elif len(tag_parts) == 1:
                 self.tags.append(TagId(tag_parts[0], None))
             else:

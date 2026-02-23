@@ -7,12 +7,10 @@ import clingo
 
 from xpit.definitions.define import TagId, TagIdFilter
 from xpit.director import ExplanationDirector
-from xpit.director.director import DistributionMethod
 from xpit.explainer import ProgramExplainer
 from xpit.utils.logging import configure_logging
 
 configure_logging(sys.stderr, logging.DEBUG, sys.stderr.isatty())
-
 
 
 PROGRAM = """
@@ -23,7 +21,7 @@ b(X) :- X=1..3, not _explain(fact(b), msg("",(X))).
 
 """
 
-#expdir.setup_before_solving(ids=[("r1",[2,WildCard.All,lambda x: x<1]), ("r1", [11])])
+# expdir.setup_before_solving(ids=[("r1",[2,WildCard.All,lambda x: x<1]), ("r1", [11])])
 ctl = clingo.Control()
 
 expdir = ExplanationDirector(ctl, 10)

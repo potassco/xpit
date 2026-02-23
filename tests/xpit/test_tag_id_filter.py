@@ -2,6 +2,7 @@
 
 import re
 
+import clingo
 import pytest
 from clingo.ast import parse_string
 
@@ -21,7 +22,7 @@ from xpit.definitions.define import Argument, TagId, WildCardArgument
             True,
         ),
         (
-            Argument(WildCardArgument["*"]),
+            Argument(WildCardArgument("*")),
             Argument([Argument(6), Argument("test")]),
             True,
         ),
@@ -37,8 +38,8 @@ from xpit.definitions.define import Argument, TagId, WildCardArgument
         ),
     ],
 )
-def test_argument_allows(arg1: Argument, arg2: Argument, expected):
-
+def test_argument_allows(arg1: Argument, arg2: Argument, expected: bool) -> None:
+    """Test allow method of argument"""
     assert arg1.allows(arg2) is expected, f"arg1= {arg1} allows arg2= {arg2} is not as expected= {expected}"
 
 
@@ -48,11 +49,11 @@ def test_argument_allows(arg1: Argument, arg2: Argument, expected):
         (Argument(lambda x: True)),
     ],
 )
-def test_allows_exceptions(arg_other: Argument):
+def test_allows_exceptions(arg_other: Argument) -> None:
+    """Test exceptions in allow method"""
     arg1 = Argument(1)
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(ValueError, match=r"Other argument must be concrete \(string or integer\) for matching\."):
         arg1.allows(arg_other)
-        assert "Other argument must be concrete (string or integer) for matching." in e.msg
 
 
 @pytest.mark.parametrize(
@@ -71,15 +72,15 @@ def test_allows_exceptions(arg_other: Argument):
                     Argument(1),
                     Argument("asdf"),
                     Argument("asd"),
-                    Argument(WildCardArgument["*"]),
+                    Argument(WildCardArgument("*")),
                     Argument([Argument(1), Argument("zwei")]),
                 ],
             ),
         ),
     ],
 )
-def test_tag_id_init_from_ast(atom_string, sig_only, expected):
+def test_tag_id_init_from_ast(atom_string: str, sig_only: bool, expected: list[Argument]) -> None:
     """test tag id init"""
-    ast_list = []
+    ast_list: list[clingo.ast.AST] = []
     parse_string(atom_string, ast_list.append)
     assert TagId.from_ast(ast_list[1].head.atom.symbol.arguments[0], sig_only=sig_only) == expected

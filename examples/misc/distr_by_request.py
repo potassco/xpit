@@ -25,7 +25,7 @@ PROGRAM2 = """
 b(X) :- X=1..5, not _explain(r2, msg("",(X))).
 :- b(X).
 """
-#expdir.setup_before_solving(ids=[("r1",[2,WildCard.All,lambda x: x<1]), ("r1", [11])])
+# expdir.setup_before_solving(ids=[("r1",[2,WildCard.All,lambda x: x<1]), ("r1", [11])])
 
 expdir = ExplanationDirector(ctl, 6)
 pe_enc_1 = ProgramExplainer(lp_strings=[PROGRAM1])

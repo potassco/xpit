@@ -214,7 +214,7 @@ class ProgramExplainer(Explainer):
                 if tag_filters is not None and not tag_filters.allows(tag_id_instance):
                     # :- _exp(...).
                     backend.add_rule(head=[], body=[a.literal])
-                    logger.debug(f"added: not {a.literal} for {tag_id_instance}")
+                    logger.debug("added: not %s for %s", a.literal, tag_id_instance)
                 exp_por = EPortion(id_=tag_id_instance, exp_atom=a)
                 # :- _exp(...), eunit.
                 backend.add_rule(head=[], body=[a.literal, eunits[idx].assumption_lit])
