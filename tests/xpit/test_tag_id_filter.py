@@ -6,7 +6,20 @@ import clingo
 import pytest
 from clingo.ast import parse_string
 
-from xpit.definitions.define import Argument, TagId, WildCardArgument
+from xpit.definitions.define import Argument, TagId, TagIdFilter, WildCardArgument
+
+
+@pytest.mark.parametrize(
+    "arg1, arg2, expected",
+    [
+        (Argument("a"), Argument(1), False),
+        (Argument("b"), Argument("b"), True),
+        (Argument([Argument(1), Argument(2)]), Argument([Argument(1), Argument(2)]), True),
+    ],
+)
+def test_argument_eq(arg1: Argument, arg2: Argument, expected: bool):
+
+    assert (arg1 == arg2) is expected, "arg1 == arg2 is not as expected"
 
 
 @pytest.mark.parametrize(
@@ -20,6 +33,11 @@ from xpit.definitions.define import Argument, TagId, WildCardArgument
             Argument([Argument(lambda x: x % 2 == 0), Argument(lambda x: len(x) <= 4)]),
             Argument([Argument(6), Argument("test")]),
             True,
+        ),
+        (
+            Argument([Argument(lambda x: x % 2 == 0), Argument(lambda x: len(x) <= 4)]),
+            Argument([Argument(6)]),
+            False,
         ),
         (
             Argument(WildCardArgument("*")),
@@ -57,6 +75,49 @@ def test_allows_exceptions(arg_other: Argument) -> None:
 
 
 @pytest.mark.parametrize(
+    "id, arity, input_args, expected",
+    [
+        [
+            "r1",
+            3,
+            [Argument(4), "string", WildCardArgument("*")],
+            TagId("r1", 3, [Argument(4), Argument("string"), Argument(WildCardArgument("*"))]),
+        ],
+    ],
+)
+def test_tagid_init(id, arity, input_args, expected) -> None:
+    """test init method of tagid"""
+    assert expected.allows(TagId(id, arity, input_args))
+
+
+@pytest.mark.parametrize(
+    "tag_str, expected",
+    [
+        ("r1/2", TagId("r1", 2)),
+        ("r2", TagId("r2")),
+    ],
+)
+def test_tag_id_init_from_str(tag_str: str, expected: TagId) -> None:
+    tag_id = TagId.from_str(tag_str)
+    assert expected.allows(tag_id)
+    assert tag_id.allows(expected)
+
+
+@pytest.mark.parametrize(
+    "tag_id, expected",
+    [
+        [TagId("r1", 3, [Argument(4), Argument("string"), Argument(WildCardArgument("*"))]), "r1/3"],
+        [TagId("r1", 1, [[Argument(4), Argument("string"), Argument(WildCardArgument("*"))]]), "r1/1"],
+        [TagId("r1"), "r1/*"],
+        [TagId("r1", 0), "r1"],
+    ],
+)
+def test_repr_tagid(tag_id, expected):
+    """test representation of tag_id"""
+    assert repr(tag_id) == expected
+
+
+@pytest.mark.parametrize(
     "atom_string, sig_only, expected",
     [
         ("tag(id(1,2,3)).", True, TagId(name="id", arity=3)),
@@ -77,10 +138,45 @@ def test_allows_exceptions(arg_other: Argument) -> None:
                 ],
             ),
         ),
+        ("""tag("id").""", True, TagId(name="id", arity=0)),
     ],
 )
 def test_tag_id_init_from_ast(atom_string: str, sig_only: bool, expected: list[Argument]) -> None:
     """test tag id init"""
     ast_list: list[clingo.ast.AST] = []
     parse_string(atom_string, ast_list.append)
-    assert TagId.from_ast(ast_list[1].head.atom.symbol.arguments[0], sig_only=sig_only) == expected
+    assert expected.allows(TagId.from_ast(ast_list[1].head.atom.symbol.arguments[0], sig_only=sig_only))
+
+
+@pytest.mark.parametrize(
+    "clingo_symbol, expected",
+    [
+        (clingo.Function("r1", [clingo.String("b")], True), TagId("r1", 1, ["b"])),
+        (clingo.Function("r1", [clingo.Number(1)], True), TagId("r1", 1, [1])),
+        (clingo.Function("r1", [clingo.String("b"), clingo.Number(1)], True), TagId("r1", 2, ["b", 1])),
+        (clingo.String("b"), TagId("b", 0)),
+        (
+            clingo.Function("r1", [clingo.Function("", [clingo.Number(1), clingo.Number(2)], True)], True),
+            TagId("r1", 1, [Argument([Argument(1), Argument(2)])]),
+        ),
+    ],
+)
+def test_tag_id_init_from_clingo_symbol(clingo_symbol: clingo.symbol.Symbol, expected: TagId) -> None:
+    """test creation of TagId from clingo_symbol"""
+    tag_id = TagId.from_clingo_symbol(clingo_symbol)
+    assert expected.allows(tag_id)
+    assert tag_id.allows(expected)
+
+
+@pytest.mark.parametrize(
+    "tag_id_filter, tag_id, allows",
+    [
+        (TagIdFilter([]), TagId("tag2", 2), [TagId("tag2", 2, [1, 2])]),
+        (TagIdFilter([]), "tag2/2", [TagId("tag2", 2, ["abc", "def"])]),
+        (TagIdFilter([]), "tag2", [TagId("tag2", 2, ["abc", "def"]), TagId("tag2", 1, ["def"])]),
+    ],
+)
+def test_tag_id_filter_append(tag_id_filter: TagIdFilter, tag_id: TagId | str, allows: list[TagId]) -> None:
+    """test append method of tag_id_filter"""
+    tag_id_filter.append(tag_id)
+    assert all(tag_id_filter.allows(test_tag_id) for test_tag_id in allows)

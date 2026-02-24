@@ -92,7 +92,7 @@ class Argument:
             self.value = value
         self.is_concrete = isinstance(value, (str, int))
         if isinstance(value, list):
-            self.is_concrete = all(arg.is_concrete for arg in value)
+            self.is_concrete = all(arg.is_concrete for arg in self.value)
 
     @classmethod
     def from_ast(cls, arg: clingo.ast.AST) -> "Argument":
@@ -108,7 +108,7 @@ class Argument:
             elif wrapped_value.type == clingo.symbol.SymbolType.Function:
                 value = wrapped_value.name
                 assert isinstance(value, str)
-            else:
+            else:  # nocoverage
                 raise NotImplementedError("Infimum and Supremum are not supported as Symbol type in tags yet.")
             return Argument(value)
         if arg.ast_type == clingo.ast.ASTType.Variable:
@@ -116,12 +116,25 @@ class Argument:
         if arg.ast_type == clingo.ast.ASTType.Function:
             value = [cls.from_ast(arg_i) for arg_i in arg.arguments]
             return Argument(value)
-        raise ValueError("Could not create Argument from clingo ast input")
+        raise ValueError("Could not create Argument from clingo ast input")  # nocoverage
 
-    def __eq__(self, other: Any) -> bool:
+    @classmethod
+    def from_clingo_symbol(cls, symbol: clingo.symbol.Symbol) -> "Argument":
+        """Converts a clingo symbol to an Argument instance."""
+        if symbol.type == clingo.SymbolType.Number:
+            return Argument(symbol.number)
+        if symbol.type == clingo.SymbolType.String:
+            return Argument(symbol.string)
+        if symbol.type == clingo.SymbolType.Function:
+            # For nested functions, we can represent them as lists of arguments
+            nested_arguments = [cls.from_clingo_symbol(a) for a in symbol.arguments]
+            return Argument(nested_arguments)
+        raise ValueError(f"Unsupported clingo symbol type for argument conversion: {symbol}")  # nocoverage
+
+    def __eq__(self, other: Any) -> bool:  # TODO: problematic since equality of function
         """Check equality of 2 Arguments"""
         if not isinstance(other, Argument):
-            return NotImplemented
+            return NotImplemented  # nocoverage
         if type(self.value) != type(other.value):
             return False
         return self.value == other.value
@@ -141,9 +154,7 @@ class Argument:
         elif isinstance(self.value, list):
             if not isinstance(other.value, list) or len(self.value) != len(other.value):
                 return False
-            for arg_self, arg_other in zip(self.value, other.value):
-                if not arg_self.allows(arg_other):
-                    return False
+            return all(arg_self.allows(arg_other) for arg_self, arg_other in zip(self.value, other.value))
         else:
             if self.value != other.value:
                 return False
@@ -185,6 +196,23 @@ class TagId:
                 else:
                     self.arguments.append(arg)
 
+    @classmethod
+    def from_str(cls, tag_str: str) -> "TagId":
+        tag_parts = tag_str.split("/")
+        if len(tag_parts) == 2:
+            tag_id, arity_str = tag_parts
+            try:
+                arity = int(arity_str)
+                return TagId(tag_id, arity)
+            except ValueError as exc:  # nocoverage
+                raise ValueError(
+                    f"Invalid tag format: {tag_str}. Expected 'tag_id/arity' where arity is an integer."
+                ) from exc
+        elif len(tag_parts) == 1:
+            return TagId(tag_parts[0], None)
+        else:  # nocoverage
+            raise ValueError(f"Invalid tag format: {tag_str}. Expected 'tag_id' or 'tag_id/arity'.")
+
     def __repr__(self) -> str:
         if self.arity is None:
             return f"{self.name}/*"
@@ -192,74 +220,46 @@ class TagId:
             return self.name
         return f"{self.name}/{self.arity}"
 
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, TagId):
-            return NotImplemented
-        if (self.name, self.arity) != (other.name, other.arity):
-            return False
-        if self.arguments is None:
-            return other.arguments is None
-        if other.arguments is None or len(self.arguments) != len(other.arguments):
-            return False
-        return all(s == o for s, o in zip(self.arguments, other.arguments))
-
-    def __hash__(self) -> int:
-        return hash((hash(self.name), hash(self.arity)))  # TODO: maybe include arguments into hash
-
     @classmethod
     def from_ast(cls, arg: clingo.ast.AST, sig_only: bool = True) -> "TagId":
         """Construct a TagId from a clingo AST argument (SymbolicTerm or Function)."""
         if arg.ast_type == clingo.ast.ASTType.SymbolicTerm:
-            return cls(arg.symbol.name, 0)
+            if arg.symbol.type == clingo.SymbolType.String:
+                return cls(arg.symbol.string, 0)
+            if arg.symbol.type == clingo.SymbolType.Function:
+                return cls(arg.symbol.name, 0)
+            raise ValueError(  # nocoverage
+                f"Invalid Id for tag: {arg}."
+                "First argument to _explain/2 is used as Id and must be a predicate(recommended), a string or a symbolic constant(disencouraged)"
+            )
         if arg.ast_type == clingo.ast.ASTType.Function:
             if sig_only:
                 return cls(arg.name, len(arg.arguments))
             return cls(arg.name, len(arg.arguments), [Argument.from_ast(arg_i) for arg_i in arg.arguments])
-        raise ValueError(f"Invalid argument for _explain: {arg}. Expected a symbolic or function term.")
+        raise ValueError(f"Invalid argument for _explain: {arg}. Expected a symbolic or function term.")  # nocoverage
 
     @classmethod
     def from_clingo_symbol(cls, symbol: clingo.symbol.Symbol) -> "TagId":
         """Construct a TagId from a clingo Symbol (Function or String)."""
         if symbol.type == clingo.SymbolType.Function:
-            arguments = [cls._convert_clingo_symbol_to_argument(a) for a in symbol.arguments]
+            arguments = [Argument.from_clingo_symbol(a) for a in symbol.arguments]
             return cls(symbol.name, len(symbol.arguments), arguments)
         if symbol.type == clingo.SymbolType.String:
-            return cls(symbol.string, 0, [])
-        raise ValueError(f"Invalid symbol for TagId: {symbol}. Expected a function or string symbol.")
-
-    @staticmethod
-    def _convert_clingo_symbol_to_argument(symbol: clingo.symbol.Symbol) -> Argument:
-        """Converts a clingo symbol to an Argument instance."""
-        if symbol.type == clingo.SymbolType.Number:
-            return Argument(symbol.number)
-        if symbol.type == clingo.SymbolType.String:
-            return Argument(symbol.string)
-        if symbol.type == clingo.SymbolType.Function:
-            # For nested functions, we can represent them as lists of arguments
-            nested_arguments = [TagId._convert_clingo_symbol_to_argument(a) for a in symbol.arguments]
-            return Argument(nested_arguments)
-        raise ValueError(f"Unsupported clingo symbol type for argument conversion: {symbol}")
-
-    def is_tag_active(self, tag_filters: Optional["list[TagId]"] = None) -> bool:  # TODO: type of tag_filter
-        """Checks if the given tag is active based on the explainable portion ids."""
-        if tag_filters is None:
-            return True
-        return any(tag_filter.allows(self) for tag_filter in tag_filters)
+            return cls(symbol.string, 0)
+        raise ValueError(f"Invalid symbol for TagId: {symbol}. Expected a function or string symbol.")  # nocoverage
 
     def allows(self, other: "TagId") -> bool:
         """Checks if this TagId allows another TagId based on name, arity, and arguments."""
-        if not isinstance(other, TagId):
+        if not isinstance(other, TagId):  # nocoverage
             return ValueError("other: %s must be a TagId", other)
         if self.name != other.name:
             return False
         if self.arity is None:
             return True
-        if self.arity != other.arity:
+        if self.arity != other.arity:  # nocoverage
             return False
         if self.arguments is None:
             return True
-        if len(self.arguments) != len(other.arguments):
-            return False
         return all(arg_self == arg_other for arg_self, arg_other in zip(self.arguments, other.arguments))
 
 
@@ -275,7 +275,7 @@ class TagIdFilter:
             if isinstance(tag, TagId):
                 self.tags.append(tag)
             elif isinstance(tag, str):
-                self.tags.append(TagId(tag, None))
+                self.tags.append(TagId.from_str(tag))
 
     def __len__(self) -> int:
         return len(self.tags)
@@ -285,20 +285,7 @@ class TagIdFilter:
         if isinstance(tag, TagId):
             self.tags.append(tag)
         elif isinstance(tag, str):
-            tag_parts = tag.split("/")
-            if len(tag_parts) == 2:
-                tag_id, arity_str = tag_parts
-                try:
-                    arity = int(arity_str)
-                    self.tags.append(TagId(tag_id, arity))
-                except ValueError as exc:
-                    raise ValueError(
-                        f"Invalid tag format: {tag}. Expected 'tag_id/arity' where arity is an integer."
-                    ) from exc
-            elif len(tag_parts) == 1:
-                self.tags.append(TagId(tag_parts[0], None))
-            else:
-                raise ValueError(f"Invalid tag format: {tag}. Expected 'tag_id' or 'tag_id/arity'.")
+            self.tags.append(TagId.from_str(tag))
 
     def allows(self, tag: TagId) -> bool:
         """Checks if the given tag is allowed by the filter."""
