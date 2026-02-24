@@ -92,7 +92,7 @@ class Argument:
             self.value = value
         self.is_concrete = isinstance(value, (str, int))
         if isinstance(value, list):
-            self.is_concrete = all(arg.is_concrete for arg in self.value)
+            self.is_concrete = all(arg.is_concrete for arg in value)
 
     @classmethod
     def from_ast(cls, arg: clingo.ast.AST) -> "Argument":
@@ -198,6 +198,7 @@ class TagId:
 
     @classmethod
     def from_str(cls, tag_str: str) -> "TagId":
+        """creates a TagId from a string."""
         tag_parts = tag_str.split("/")
         if len(tag_parts) == 2:
             tag_id, arity_str = tag_parts
@@ -230,7 +231,8 @@ class TagId:
                 return cls(arg.symbol.name, 0)
             raise ValueError(  # nocoverage
                 f"Invalid Id for tag: {arg}."
-                "First argument to _explain/2 is used as Id and must be a predicate(recommended), a string or a symbolic constant(disencouraged)"
+                "First argument to _explain/2 is used as Id and must be a predicate(recommended), "
+                "a string or a symbolic constant(disencouraged)"
             )
         if arg.ast_type == clingo.ast.ASTType.Function:
             if sig_only:

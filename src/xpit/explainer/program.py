@@ -211,7 +211,8 @@ class ProgramExplainer(Explainer):
                 # Check if tag_id active in this expalainer and in the user-provided tag filters
                 if not self._exp_portion_ids.allows(tag_id_instance):
                     continue  # nocoverage
-                if tag_filters is not None and not tag_filters.allows(tag_id_instance):
+                if tag_filters is not None and not tag_filters.allows(tag_id_instance):  # nocoverage
+                    # TODO: add test case once tag filtering use cases are clearer
                     # :- _exp(...).
                     backend.add_rule(head=[], body=[a.literal])
                     logger.debug("added: not %s for %s", a.literal, tag_id_instance)

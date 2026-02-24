@@ -17,7 +17,9 @@ from xpit.definitions.define import Argument, TagId, TagIdFilter, WildCardArgume
         (Argument([Argument(1), Argument(2)]), Argument([Argument(1), Argument(2)]), True),
     ],
 )
-def test_argument_eq(arg1: Argument, arg2: Argument, expected: bool):
+def test_argument_eq(arg1: Argument, arg2: Argument, expected: bool) -> None:
+    """test argument equality method"""
+    # TODO: probably should go, once __eq__ is removed
 
     assert (arg1 == arg2) is expected, "arg1 == arg2 is not as expected"
 
@@ -75,7 +77,7 @@ def test_allows_exceptions(arg_other: Argument) -> None:
 
 
 @pytest.mark.parametrize(
-    "id, arity, input_args, expected",
+    "id_, arity, input_args, expected",
     [
         [
             "r1",
@@ -85,9 +87,9 @@ def test_allows_exceptions(arg_other: Argument) -> None:
         ],
     ],
 )
-def test_tagid_init(id, arity, input_args, expected) -> None:
+def test_tagid_init(id_: str, arity: int, input_args: list[Argument], expected: TagId) -> None:
     """test init method of tagid"""
-    assert expected.allows(TagId(id, arity, input_args))
+    assert expected.allows(TagId(id_, arity, input_args))
 
 
 @pytest.mark.parametrize(
@@ -98,6 +100,7 @@ def test_tagid_init(id, arity, input_args, expected) -> None:
     ],
 )
 def test_tag_id_init_from_str(tag_str: str, expected: TagId) -> None:
+    """test tag id init from str"""
     tag_id = TagId.from_str(tag_str)
     assert expected.allows(tag_id)
     assert tag_id.allows(expected)
@@ -112,7 +115,7 @@ def test_tag_id_init_from_str(tag_str: str, expected: TagId) -> None:
         [TagId("r1", 0), "r1"],
     ],
 )
-def test_repr_tagid(tag_id, expected):
+def test_repr_tagid(tag_id: TagId, expected: str) -> None:
     """test representation of tag_id"""
     assert repr(tag_id) == expected
 
@@ -141,7 +144,7 @@ def test_repr_tagid(tag_id, expected):
         ("""tag("id").""", True, TagId(name="id", arity=0)),
     ],
 )
-def test_tag_id_init_from_ast(atom_string: str, sig_only: bool, expected: list[Argument]) -> None:
+def test_tag_id_init_from_ast(atom_string: str, sig_only: bool, expected: TagId) -> None:
     """test tag id init"""
     ast_list: list[clingo.ast.AST] = []
     parse_string(atom_string, ast_list.append)

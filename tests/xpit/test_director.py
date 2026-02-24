@@ -180,7 +180,7 @@ def test_director(  # pylint: disable=too-many-positional-arguments
     file: str,
     prog_str: str,
     num_cores: int,
-    ids_in_cores: list[set[str]],
+    ids_in_cores: list[TagIdFilter],
 ) -> None:
     """test ExplanationDirector usage."""
 
