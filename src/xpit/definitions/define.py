@@ -5,7 +5,7 @@ Class definitions for explanation related abstractions
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Optional, Protocol, Sequence, cast, overload
+from typing import Callable, Optional, Protocol, Sequence, cast, overload
 
 import clingo
 import clingo.ast
@@ -131,20 +131,14 @@ class Argument:
             return Argument(nested_arguments)
         raise ValueError(f"Unsupported clingo symbol type for argument conversion: {symbol}")  # nocoverage
 
-    def __eq__(self, other: Any) -> bool:  # TODO: problematic since equality of function
-        """Check equality of 2 Arguments"""
-        if not isinstance(other, Argument):
-            return NotImplemented  # nocoverage
-        if type(self.value) != type(other.value):
-            return False
-        return self.value == other.value
-
     def allows(self, other: "Argument") -> bool:
         """Checks if this argument matches another concrete argument based on type and value."""
-        if not other.is_concrete:
-            raise ValueError(f"Other argument must be concrete (string or integer) for matching. Got: {other.value}")
         if self.value in WildCardArgument:
             return True
+        if other.value in WildCardArgument:  # nocoverage
+            return False
+        if not other.is_concrete:
+            raise ValueError(f"Other argument must be concrete (string or integer) for matching. Got: {other.value}")
         if isinstance(self.value, re.Pattern):
             if not isinstance(other.value, str) or not re.match(self.value, other.value):
                 return False
@@ -262,7 +256,7 @@ class TagId:
             return False
         if self.arguments is None:
             return True
-        return all(arg_self == arg_other for arg_self, arg_other in zip(self.arguments, other.arguments))
+        return all(arg_self.allows(arg_other) for arg_self, arg_other in zip(self.arguments, other.arguments))
 
 
 class TagIdFilter:

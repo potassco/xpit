@@ -12,21 +12,6 @@ from xpit.definitions.define import Argument, TagId, TagIdFilter, WildCardArgume
 @pytest.mark.parametrize(
     "arg1, arg2, expected",
     [
-        (Argument("a"), Argument(1), False),
-        (Argument("b"), Argument("b"), True),
-        (Argument([Argument(1), Argument(2)]), Argument([Argument(1), Argument(2)]), True),
-    ],
-)
-def test_argument_eq(arg1: Argument, arg2: Argument, expected: bool) -> None:
-    """test argument equality method"""
-    # TODO: probably should go, once __eq__ is removed
-
-    assert (arg1 == arg2) is expected, "arg1 == arg2 is not as expected"
-
-
-@pytest.mark.parametrize(
-    "arg1, arg2, expected",
-    [
         (Argument(5), Argument(5), True),
         (Argument("a"), Argument(5), False),
         (Argument(lambda x: x < 10), Argument(5), True),
