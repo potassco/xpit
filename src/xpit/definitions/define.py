@@ -85,6 +85,15 @@ class Argument:
         if isinstance(value, list):
             self.is_concrete = all(arg.is_concrete for arg in value)
 
+    def __repr__(self) -> str:
+        if isinstance(self.value, list):
+            return f"({', '.join(repr(arg) for arg in self.value)})"
+        if isinstance(self.value, WildCardArgument):
+            return "*"
+        if callable(self.value):
+            return f"<callable {self.value}>"
+        return f"{self.value}"
+
     @classmethod
     def from_ast(cls, arg: clingo.ast.AST) -> "Argument":
         """Create Argument from clingo ast"""
@@ -117,6 +126,8 @@ class Argument:
         if symbol.type == clingo.SymbolType.String:
             return Argument(symbol.string)
         if symbol.type == clingo.SymbolType.Function:
+            if not symbol.arguments and symbol.name:
+                return Argument(symbol.name)
             # For nested functions, we can represent them as lists of arguments
             nested_arguments = [cls.from_clingo_symbol(a) for a in symbol.arguments]
             return Argument(nested_arguments)
@@ -194,7 +205,9 @@ class PortionId:
             return f"{self.name}/*"
         if self.arity == 0:
             return self.name
-        return f"{self.name}/{self.arity}"
+        if self.arguments is None:
+            return f"{self.name}/{self.arity}"
+        return f"{self.name}({', '.join(repr(arg) for arg in self.arguments)})"
 
     @classmethod
     def from_ast(cls, arg: clingo.ast.AST, sig_only: bool = True) -> "PortionId":

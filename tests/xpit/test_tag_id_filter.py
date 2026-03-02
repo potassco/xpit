@@ -82,15 +82,31 @@ def test_tag_id_init_from_str(tag_str: str, expected: PortionId) -> None:
 @pytest.mark.parametrize(
     "tag_id, expected",
     [
-        [PortionId("r1", 3, [Argument(4), Argument("string"), Argument(WildCardArgument("*"))]), "r1/3"],
-        [PortionId("r1", 1, [[Argument(4), Argument("string"), Argument(WildCardArgument("*"))]]), "r1/1"],
+        [PortionId("r1", 3, [Argument(4), Argument("string"), Argument(WildCardArgument("*"))]), "r1(4, string, *)"],
+        [
+            PortionId("r1", 1, [[Argument(4), Argument("string"), Argument(WildCardArgument("*"))]]),
+            "r1((4, string, *))",
+        ],
         [PortionId("r1"), "r1/*"],
         [PortionId("r1", 0), "r1"],
+        [PortionId("r1", 0), "r1"],
+        [PortionId("r1", 2), "r1/2"],
     ],
 )
 def test_repr_tagid(tag_id: PortionId, expected: str) -> None:
     """test representation of tag_id"""
     assert repr(tag_id) == expected
+
+
+def test_repr_argument_lambda_in_argument() -> None:
+    """test representation of lambda in argument"""
+    arg = Argument(lambda x: x < 10)
+    arg_repr = repr(arg)
+    print(arg_repr)
+    assert (
+        arg_repr
+        == "<callable <function test_repr_argument_lambda_in_argument.<locals>.<lambda> at " + hex(id(arg.value)) + ">>"
+    )
 
 
 @pytest.mark.parametrize(
@@ -134,6 +150,11 @@ def test_tag_id_init_from_ast(atom_string: str, sig_only: bool, expected: Portio
         (
             clingo.Function("r1", [clingo.Function("", [clingo.Number(1), clingo.Number(2)], True)], True),
             PortionId("r1", 1, [Argument([Argument(1), Argument(2)])]),
+        ),
+        (clingo.Function("r1", [], True), PortionId("r1", 0, [])),
+        (
+            clingo.Function("fact", [clingo.Function("b", [], True), clingo.Number(1)], True),
+            PortionId("fact", 2, [Argument("b"), Argument(1)]),
         ),
     ],
 )
