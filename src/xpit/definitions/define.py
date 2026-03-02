@@ -5,7 +5,7 @@ Class definitions for explanation related abstractions
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Optional, Protocol, Sequence, cast, overload
+from typing import Callable, Optional, Protocol, Self, Sequence, cast, overload
 
 import clingo
 import clingo.ast
@@ -131,7 +131,7 @@ class Argument:
             return Argument(nested_arguments)
         raise ValueError(f"Unsupported clingo symbol type for argument conversion: {symbol}")  # nocoverage
 
-    def allows(self, other: "Argument") -> bool:
+    def allows(self, other: Self) -> bool:
         """Checks if this argument matches another concrete argument based on type and value."""
         if self.value in WildCardArgument:
             return True
@@ -170,7 +170,7 @@ class PortionId:
                 | re.Pattern[str]
                 | Callable[[str], bool]
                 | Callable[[int], bool]
-                | list["Argument"]
+                | list[Argument]
                 | WildCardArgument
             ]
         ] = None,
@@ -244,7 +244,7 @@ class PortionId:
             return cls(symbol.string, 0)
         raise ValueError(f"Invalid symbol for TagId: {symbol}. Expected a function or string symbol.")  # nocoverage
 
-    def allows(self, other: "PortionId") -> bool:
+    def allows(self, other: Self) -> bool:
         """Checks if this TagId allows another TagId based on name, arity, and arguments."""
         if not isinstance(other, PortionId):  # nocoverage
             return ValueError("other: %s must be a TagId", other)
