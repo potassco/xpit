@@ -8,6 +8,38 @@ from xpit.definitions.define import Argument, PortionId, PortionIdFilter, WildCa
 
 
 @pytest.mark.parametrize(
+    "ast, expected",
+    [
+        ("tag(id(f(1))).", Argument(("id", [Argument(("f", [Argument(1)]))]))),
+        ("tag(id).", Argument("id")),
+        ("tag(1).", Argument(1)),
+        ("tag(\"id\").", Argument("id")),
+        ("tag(id()).", Argument(("id",[]))),
+        ("tag(id).", Argument("id")),
+        ("tag(id((1,2,3))).", Argument(("id", [Argument([Argument(1), Argument(2), Argument(3)])]))),
+
+        
+    ],
+)
+def test_argument_from_ast(ast: str, expected: Argument) -> None:
+    """test creation of Argument from ast"""
+    ast_list: list[clingo.ast.AST] = []
+    parse_string(ast, ast_list.append)
+    argument = Argument.from_ast(ast_list[1].head.atom.symbol.arguments[0])
+    assert expected.allows(argument)
+    assert argument.allows(expected)
+    
+# TODO:
+def test_argument_from_clingo_symbol() -> None:
+    """test creation of Argument from clingo symbol"""
+    raise Exception("continue here")
+    clingo_symbol = clingo.Function("id", [clingo.Function("f", [clingo.Number(1)], True)], True)
+    expected = Argument(("id", [Argument(("f", [Argument(1)]))]))
+    argument = Argument.from_clingo_symbol(clingo_symbol)
+    assert expected.allows(argument)
+    assert argument.allows(expected)
+
+@pytest.mark.parametrize(
     "arg1, arg2, expected",
     [
         (Argument(5), Argument(5), True),

@@ -71,7 +71,7 @@ class Argument:
 
     def __init__(
         self,
-        value: str | int | Callable[[str], bool] | Callable[[int], bool] | list["Argument"] | WildCardArgument,
+        value: str | int | Callable[[str], bool] | Callable[[int], bool] | list["Argument"] | tuple[str,list["Argument"]] |WildCardArgument,
     ) -> None:
         """initializes an Argument with a value that can be a:
         string, integer (string and int are treated as concrete values),
@@ -84,6 +84,9 @@ class Argument:
         self.is_concrete = isinstance(value, (str, int))
         if isinstance(value, list):
             self.is_concrete = all(arg.is_concrete for arg in value)
+        if isinstance(value, tuple) and len(value) == 2 and isinstance(value[0], str) and isinstance(value[1], list):
+            self.is_concrete = all(arg.is_concrete for arg in value[1])
+            
 
     def __repr__(self) -> str:
         if isinstance(self.value, list):
@@ -115,6 +118,8 @@ class Argument:
             return Argument(WildCardArgument("*"))
         if arg.ast_type == clingo.ast.ASTType.Function:
             value = [cls.from_ast(arg_i) for arg_i in arg.arguments]
+            if arg.name:
+                return Argument((arg.name, value))
             return Argument(value)
         raise ValueError(f"Could not create Argument from clingo ast input: {arg}")  # nocoverage
 
@@ -148,6 +153,12 @@ class Argument:
             if not isinstance(other.value, list) or len(self.value) != len(other.value):
                 return False
             return all(arg_self.allows(arg_other) for arg_self, arg_other in zip(self.value, other.value))
+        elif isinstance(self.value, tuple):
+            if not isinstance(other.value, tuple):
+                return False
+            if self.value[0] != other.value[0]:
+                return False
+            return all(arg_self.allows(arg_other) for arg_self, arg_other in zip(self.value[1], other.value[1]))
         else:
             if self.value != other.value:
                 return False
