@@ -138,7 +138,7 @@ class Argument:
         if self.value in WildCardArgument:
             return True
         if other.value in WildCardArgument:  # nocoverage
-            return False
+            return True
         if not other.is_concrete:
             raise ValueError(f"Other argument must be concrete (string or integer) for matching. Got: {other.value}")
         if callable(self.value):
