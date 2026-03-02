@@ -1,7 +1,5 @@
 """Test tag id filters"""
 
-import re
-
 import clingo
 import pytest
 from clingo.ast import parse_string
@@ -29,16 +27,6 @@ from xpit.definitions.define import Argument, PortionId, PortionIdFilter, WildCa
         (
             Argument(WildCardArgument("*")),
             Argument([Argument(6), Argument("test")]),
-            True,
-        ),
-        (
-            Argument(re.compile("[a-d]{3,3}")),
-            Argument("def"),
-            False,
-        ),
-        (
-            Argument(re.compile("[a-d]{1,3}")),
-            Argument("abc"),
             True,
         ),
     ],

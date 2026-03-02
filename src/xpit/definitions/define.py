@@ -2,7 +2,6 @@
 Class definitions for explanation related abstractions
 """
 
-import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Optional, Protocol, Self, Sequence, cast, overload
@@ -72,20 +71,12 @@ class Argument:
 
     def __init__(
         self,
-        value: (
-            str
-            | int
-            | re.Pattern[str]
-            | Callable[[str], bool]
-            | Callable[[int], bool]
-            | list["Argument"]
-            | WildCardArgument
-        ),
+        value: str | int | Callable[[str], bool] | Callable[[int], bool] | list["Argument"] | WildCardArgument,
     ) -> None:
         """initializes an Argument with a value that can be a:
         string, integer (string and int are treated as concrete values),
         regex pattern, callable, list of Arguments (treated as concrete if all are concrete), or a wildcard."""
-        self.value: str | int | re.Pattern[str] | StrIntPredicate | list["Argument"] | WildCardArgument
+        self.value: str | int | StrIntPredicate | list["Argument"] | WildCardArgument
         if callable(value):
             self.value = cast(StrIntPredicate, value)
         else:
@@ -139,10 +130,7 @@ class Argument:
             return False
         if not other.is_concrete:
             raise ValueError(f"Other argument must be concrete (string or integer) for matching. Got: {other.value}")
-        if isinstance(self.value, re.Pattern):
-            if not isinstance(other.value, str) or not re.match(self.value, other.value):
-                return False
-        elif callable(self.value):
+        if callable(self.value):
             if isinstance(other.value, (str, int)):
                 return self.value(other.value)
         elif isinstance(self.value, list):
@@ -164,14 +152,7 @@ class PortionId:
         arity: Optional[int] = None,
         arguments: Optional[
             Sequence[
-                Argument
-                | str
-                | int
-                | re.Pattern[str]
-                | Callable[[str], bool]
-                | Callable[[int], bool]
-                | list[Argument]
-                | WildCardArgument
+                Argument | str | int | Callable[[str], bool] | Callable[[int], bool] | list[Argument] | WildCardArgument
             ]
         ] = None,
     ) -> None:
