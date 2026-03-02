@@ -7,7 +7,7 @@ import pytest
 from clingo.ast import parse_string
 
 from tests.xpit.test_main import TEST_DIR
-from xpit.definitions.define import TagId
+from xpit.definitions.define import PortionId
 from xpit.director.director import ExplanationDirector
 from xpit.explainer.program import ExplanationPortionTransformer, ProgramExplainer
 
@@ -57,15 +57,15 @@ def test_add_lp_strings(director_factory: Callable[[int], ExplanationDirector]) 
 @pytest.mark.parametrize(
     "file, expected_ids, duplicate_warning",
     [
-        ("not_a_of_x.lp", [TagId("r1", 0)], False),
-        ("dupl_ids.lp", [TagId("r1", 0)], True),
+        ("not_a_of_x.lp", [PortionId("r1", 0)], False),
+        ("dupl_ids.lp", [PortionId("r1", 0)], True),
     ],
 )
 def test_setup_before_grounding(
     caplog: pytest.LogCaptureFixture,
     director_factory: Callable[[int], "ExplanationDirector"],
     file: str,
-    expected_ids: list[TagId],
+    expected_ids: list[PortionId],
     duplicate_warning: bool,
 ) -> None:
     """test setup_before_grounding of ProgramExplainer."""

@@ -5,7 +5,7 @@ import sys
 
 import clingo
 
-from xpit.definitions.define import TagId, TagIdFilter
+from xpit.definitions.define import PortionId, PortionIdFilter, WildCardArgument
 from xpit.director import ExplanationDirector
 from xpit.explainer import ProgramExplainer
 from xpit.utils.logging import configure_logging
@@ -14,10 +14,10 @@ configure_logging(sys.stderr, logging.DEBUG, sys.stderr.isatty())
 
 
 PROGRAM = """
-a(X) :- X=1..3, not _explain(fact(a), msg("",(X))).
-b(X) :- X=1..3, not _explain(fact(b), msg("",(X))).
+a(X) :- X=1..3, not _explain(fact("a",X), msg("",(X))).
+b(X) :- X=1..3, not _explain(fact("b",X), msg("",(X))).
 
-:- a(X), b(X), not _explain(constraint(a,b), msg("",())).
+:- a(X), b(X), not _explain(constraint(X), msg("",())).
 
 """
 
@@ -32,8 +32,11 @@ expdir.register_explainer(pe_enc_1)
 expdir.setup_before_grounding()
 
 ctl.ground([("base", [])])
+# expdir.setup_before_solving()
 
-expdir.setup_before_solving(tag_filters=TagIdFilter([TagId("constraint", 2)]))
+expdir.setup_before_solving(
+    tag_filters=PortionIdFilter([PortionId(name="fact", arity=2, arguments=[WildCardArgument("*"), 2])])
+)
 # expdir.setup_before_solving(tag_filters=TagIdFilter([TagId("fact", 1)]))
 
 for core in expdir.compute_minimal_core_eunits():

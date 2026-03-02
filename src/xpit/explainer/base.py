@@ -9,7 +9,7 @@ import clingo
 
 from xpit.definitions import ExplanationPortion as EPortion
 from xpit.definitions import ExplanationUnit as EUnit
-from xpit.definitions.define import TagIdFilter
+from xpit.definitions.define import PortionIdFilter
 
 
 class Explainer(ABC):
@@ -34,7 +34,7 @@ class Explainer(ABC):
         """sets up the explainer before grounding"""
 
     @abstractmethod
-    def assign_eunit_budget(self, eunits: List[EUnit], tag_filters: Optional[TagIdFilter]) -> None:  # nocoverage
+    def assign_eunit_budget(self, eunits: List[EUnit], tag_filters: Optional[PortionIdFilter]) -> None:  # nocoverage
         """assigns eunit budget to explanation portions"""
 
     @abstractmethod

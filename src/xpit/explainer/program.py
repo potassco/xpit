@@ -27,7 +27,7 @@ from clorm import FactBase
 
 from xpit.definitions import ExplanationPortion as EPortion
 from xpit.definitions import ExplanationUnit as EUnit
-from xpit.definitions.define import TagId, TagIdFilter
+from xpit.definitions.define import PortionId, PortionIdFilter
 from xpit.utils.logging import get_logger
 
 from .base import Explainer
@@ -42,7 +42,7 @@ class ExplanationPortionTransformer:
     """
 
     def __init__(self, builder: ProgramBuilder, fact_signatures: list[tuple[str, int]]):
-        self.exp_portion_ids: TagIdFilter = TagIdFilter([])
+        self.exp_portion_ids: PortionIdFilter = PortionIdFilter([])
         self._builder = builder
         self._fact_signatures = fact_signatures
 
@@ -104,7 +104,7 @@ class ExplanationPortionTransformer:
                 exp_lit.sign = Sign.NoSign
                 assert len(lit.atom.symbol.arguments) == 2, "_explain should have two arguments."
 
-                tag_id = TagId.from_ast(lit.atom.symbol.arguments[0])
+                tag_id = PortionId.from_ast(lit.atom.symbol.arguments[0])
                 if self.exp_portion_ids.allows(tag_id):
                     logger.warning("Duplicate explainable portion id found: %s", str(lit.atom.symbol.arguments[0]))
                 else:
@@ -152,7 +152,7 @@ class ProgramExplainer(Explainer):
         self.lp_files = list(lp_files) if lp_files is not None else []
         self.lp_strings = list(lp_strings) if lp_strings is not None else []
         self.fact_signatures = list(fact_signatures) if fact_signatures is not None else []
-        self._exp_portion_ids: TagIdFilter = TagIdFilter([])
+        self._exp_portion_ids: PortionIdFilter = PortionIdFilter([])
         self._binding: defaultdict[EUnit, List[EPortion]] = defaultdict(list)
 
     def add_lp_file(self, lp_file: Union[str, Path]) -> None:
@@ -193,10 +193,10 @@ class ProgramExplainer(Explainer):
         return sum(
             1
             for a in self.control.symbolic_atoms.by_signature("_exp", 2)
-            if self._exp_portion_ids.allows(TagId.from_clingo_symbol(a.symbol.arguments[0]))
+            if self._exp_portion_ids.allows(PortionId.from_clingo_symbol(a.symbol.arguments[0]))
         )
 
-    def assign_eunit_budget(self, eunits: List[EUnit], tag_filters: Optional[TagIdFilter] = None) -> None:
+    def assign_eunit_budget(self, eunits: List[EUnit], tag_filters: Optional[PortionIdFilter] = None) -> None:
         """assigns eunit budget to explainable portions in the program"""
         if not self.control:  # nocoverage
             raise ValueError("Unregistered explainer: control is not set.")
@@ -207,12 +207,12 @@ class ProgramExplainer(Explainer):
             idx = 0
             for a in self.control.symbolic_atoms.by_signature("_exp", 2):
                 # tag_id = extract_tag_id(a.symbol.arguments[0])
-                tag_id_instance = TagId.from_clingo_symbol(a.symbol.arguments[0])
+                tag_id_instance = PortionId.from_clingo_symbol(a.symbol.arguments[0])
                 # Check if tag_id active in this expalainer and in the user-provided tag filters
                 if not self._exp_portion_ids.allows(tag_id_instance):
                     continue  # nocoverage
                 if tag_filters is not None and not tag_filters.allows(tag_id_instance):  # nocoverage
-                    # TODO: add test case once tag filtering use cases are clearer
+                    # TODO: add test case once tag filtering use cases are cle
                     # :- _exp(...).
                     backend.add_rule(head=[], body=[a.literal])
                     logger.debug("added: not %s for %s", a.literal, tag_id_instance)

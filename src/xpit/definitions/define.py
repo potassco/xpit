@@ -34,7 +34,7 @@ class ExplanationPortion:
     Container class for the Explanation Portion
     """
 
-    id_: "TagId"
+    id_: "PortionId"
     exp_atom: SymbolicAtom
 
     # TODO: use clorm for the exp_atom
@@ -155,7 +155,7 @@ class Argument:
         return True
 
 
-class TagId:
+class PortionId:
     """Class representing a tag id for explanation portions."""
 
     def __init__(
@@ -191,20 +191,20 @@ class TagId:
                     self.arguments.append(arg)
 
     @classmethod
-    def from_str(cls, tag_str: str) -> "TagId":
+    def from_str(cls, tag_str: str) -> "PortionId":
         """creates a TagId from a string."""
         tag_parts = tag_str.split("/")
         if len(tag_parts) == 2:
             tag_id, arity_str = tag_parts
             try:
                 arity = int(arity_str)
-                return TagId(tag_id, arity)
+                return PortionId(tag_id, arity)
             except ValueError as exc:  # nocoverage
                 raise ValueError(
                     f"Invalid tag format: {tag_str}. Expected 'tag_id/arity' where arity is an integer."
                 ) from exc
         elif len(tag_parts) == 1:
-            return TagId(tag_parts[0], None)
+            return PortionId(tag_parts[0], None)
         else:  # nocoverage
             raise ValueError(f"Invalid tag format: {tag_str}. Expected 'tag_id' or 'tag_id/arity'.")
 
@@ -216,7 +216,7 @@ class TagId:
         return f"{self.name}/{self.arity}"
 
     @classmethod
-    def from_ast(cls, arg: clingo.ast.AST, sig_only: bool = True) -> "TagId":
+    def from_ast(cls, arg: clingo.ast.AST, sig_only: bool = True) -> "PortionId":
         """Construct a TagId from a clingo AST argument (SymbolicTerm or Function)."""
         if arg.ast_type == clingo.ast.ASTType.SymbolicTerm:
             if arg.symbol.type == clingo.SymbolType.String:
@@ -235,7 +235,7 @@ class TagId:
         raise ValueError(f"Invalid argument for _explain: {arg}. Expected a symbolic or function term.")  # nocoverage
 
     @classmethod
-    def from_clingo_symbol(cls, symbol: clingo.symbol.Symbol) -> "TagId":
+    def from_clingo_symbol(cls, symbol: clingo.symbol.Symbol) -> "PortionId":
         """Construct a TagId from a clingo Symbol (Function or String)."""
         if symbol.type == clingo.SymbolType.Function:
             arguments = [Argument.from_clingo_symbol(a) for a in symbol.arguments]
@@ -244,9 +244,9 @@ class TagId:
             return cls(symbol.string, 0)
         raise ValueError(f"Invalid symbol for TagId: {symbol}. Expected a function or string symbol.")  # nocoverage
 
-    def allows(self, other: "TagId") -> bool:
+    def allows(self, other: "PortionId") -> bool:
         """Checks if this TagId allows another TagId based on name, arity, and arguments."""
-        if not isinstance(other, TagId):  # nocoverage
+        if not isinstance(other, PortionId):  # nocoverage
             return ValueError("other: %s must be a TagId", other)
         if self.name != other.name:
             return False
@@ -259,30 +259,30 @@ class TagId:
         return all(arg_self.allows(arg_other) for arg_self, arg_other in zip(self.arguments, other.arguments))
 
 
-class TagIdFilter:
+class PortionIdFilter:
     """Class representing a tag filter for explanation portions."""
 
-    def __init__(self, tags: list[TagId | str]) -> None:
+    def __init__(self, tags: list[PortionId | str]) -> None:
         """Initializes a TagIdFilter with a list of TagIds or strings
         (which are converted to TagIds with arity given (or None if not specified)).
         The filter allows tags that match any of the provided tags."""
-        self.tags: list[TagId] = []
+        self.tags: list[PortionId] = []
         for tag in tags:
-            if isinstance(tag, TagId):
+            if isinstance(tag, PortionId):
                 self.tags.append(tag)
             elif isinstance(tag, str):
-                self.tags.append(TagId.from_str(tag))
+                self.tags.append(PortionId.from_str(tag))
 
     def __len__(self) -> int:
         return len(self.tags)
 
-    def append(self, tag: TagId | str) -> None:
+    def append(self, tag: PortionId | str) -> None:
         """Appends a new tag to the filter."""
-        if isinstance(tag, TagId):
+        if isinstance(tag, PortionId):
             self.tags.append(tag)
         elif isinstance(tag, str):
-            self.tags.append(TagId.from_str(tag))
+            self.tags.append(PortionId.from_str(tag))
 
-    def allows(self, tag: TagId) -> bool:
+    def allows(self, tag: PortionId) -> bool:
         """Checks if the given tag is allowed by the filter."""
         return any(tag_filter.allows(tag) for tag_filter in self.tags)

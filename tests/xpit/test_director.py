@@ -5,7 +5,7 @@ from typing import Callable
 import clingo
 import pytest
 
-from xpit.definitions.define import ExplanationUnit, TagId, TagIdFilter
+from xpit.definitions.define import ExplanationUnit, PortionId, PortionIdFilter
 from xpit.director.director import ExplanationDirector
 from xpit.explainer.program import ProgramExplainer
 
@@ -163,15 +163,15 @@ def test_distribute_eunits_by_request(
 @pytest.mark.parametrize(
     "num_eunit, file, prog_str, num_cores, ids_in_cores",
     [
-        (3, "not_a_of_x.lp", "", 3, [TagIdFilter(["r1/0"])]),
-        (2, "not_a_of_x.lp", "", 2, [TagIdFilter([TagId("r1", 0, [])])]),
-        (4, "not_a_of_x.lp", "", 3, [TagIdFilter([TagId("r1", 0, [])])]),
-        (2, "ex1.lp", "", 1, [TagIdFilter([TagId("r1", 0, [])])]),
-        (1, "ex1.lp", "", 1, [TagIdFilter([TagId("r1", 0, [])])]),
-        (2, "ex2.lp", "", 1, [TagIdFilter([TagId("r1", 0, [])])]),
+        (3, "not_a_of_x.lp", "", 3, [PortionIdFilter(["r1/0"])]),
+        (2, "not_a_of_x.lp", "", 2, [PortionIdFilter([PortionId("r1", 0, [])])]),
+        (4, "not_a_of_x.lp", "", 3, [PortionIdFilter([PortionId("r1", 0, [])])]),
+        (2, "ex1.lp", "", 1, [PortionIdFilter([PortionId("r1", 0, [])])]),
+        (1, "ex1.lp", "", 1, [PortionIdFilter([PortionId("r1", 0, [])])]),
+        (2, "ex2.lp", "", 1, [PortionIdFilter([PortionId("r1", 0, [])])]),
         (1, "ex2.lp", "", 0, []),  # this might be a bug in cling-explaid; does not work with ASP-explorer.
         (3, "sat1.lp", "", 0, []),
-        (1, "", 'a :- not _explain(r1, msg("",())). :-a. ', 1, [TagIdFilter([TagId("r1", 0, [])])]),
+        (1, "", 'a :- not _explain(r1, msg("",())). :-a. ', 1, [PortionIdFilter([PortionId("r1", 0, [])])]),
     ],
 )
 def test_director(  # pylint: disable=too-many-positional-arguments
@@ -180,7 +180,7 @@ def test_director(  # pylint: disable=too-many-positional-arguments
     file: str,
     prog_str: str,
     num_cores: int,
-    ids_in_cores: list[TagIdFilter],
+    ids_in_cores: list[PortionIdFilter],
 ) -> None:
     """test ExplanationDirector usage."""
 

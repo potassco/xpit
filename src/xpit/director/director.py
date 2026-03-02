@@ -10,7 +10,7 @@ from clingo.symbol import Function
 
 from xpit.definitions import ExplanationPortion as EPortion
 from xpit.definitions import ExplanationUnit as EUnit
-from xpit.definitions.define import TagIdFilter
+from xpit.definitions.define import PortionIdFilter
 from xpit.explainer.base import Explainer
 from xpit.utils.logging import get_logger
 
@@ -98,7 +98,7 @@ class ExplanationDirector:
         return scaled
 
     def setup_before_solving(
-        self, dist_method: DistributionMethod = DistributionMethod.EQUAL, tag_filters: Optional[TagIdFilter] = None
+        self, dist_method: DistributionMethod = DistributionMethod.EQUAL, tag_filters: Optional[PortionIdFilter] = None
     ) -> None:
         """sets up the director and assigns eunit budgets to explainers before solving
         Args:
