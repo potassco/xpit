@@ -116,7 +116,7 @@ class Argument:
         if arg.ast_type == clingo.ast.ASTType.Function:
             value = [cls.from_ast(arg_i) for arg_i in arg.arguments]
             return Argument(value)
-        raise ValueError("Could not create Argument from clingo ast input")  # nocoverage
+        raise ValueError(f"Could not create Argument from clingo ast input: {arg}")  # nocoverage
 
     @classmethod
     def from_clingo_symbol(cls, symbol: clingo.symbol.Symbol) -> "Argument":
