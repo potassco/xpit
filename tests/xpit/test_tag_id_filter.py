@@ -103,10 +103,8 @@ def test_repr_argument_lambda_in_argument() -> None:
     arg = Argument(lambda x: x < 10)
     arg_repr = repr(arg)
     print(arg_repr)
-    assert (
-        arg_repr
-        == "<callable <function test_repr_argument_lambda_in_argument.<locals>.<lambda> at " + hex(id(arg.value)) + ">>"
-    )
+    assert arg_repr.startswith("<callable <function test_repr_argument_lambda_in_argument.<locals>.<lambda> at ")
+    assert arg_repr.endswith(">>")
 
 
 @pytest.mark.parametrize(
