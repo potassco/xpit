@@ -71,12 +71,20 @@ class Argument:
 
     def __init__(
         self,
-        value: str | int | Callable[[str], bool] | Callable[[int], bool] | list["Argument"] | tuple[str,list["Argument"]] |WildCardArgument,
+        value: (
+            str
+            | int
+            | Callable[[str], bool]
+            | Callable[[int], bool]
+            | list["Argument"]
+            | tuple[str, list["Argument"]]
+            | WildCardArgument
+        ),
     ) -> None:
         """initializes an Argument with a value that can be a:
         string, integer (string and int are treated as concrete values),
         regex pattern, callable, list of Arguments (treated as concrete if all are concrete), or a wildcard."""
-        self.value: str | int | StrIntPredicate | list["Argument"] | WildCardArgument
+        self.value: str | int | StrIntPredicate | list["Argument"] | tuple[str, list["Argument"]] | WildCardArgument
         if callable(value):
             self.value = cast(StrIntPredicate, value)
         else:
@@ -86,7 +94,6 @@ class Argument:
             self.is_concrete = all(arg.is_concrete for arg in value)
         if isinstance(value, tuple) and len(value) == 2 and isinstance(value[0], str) and isinstance(value[1], list):
             self.is_concrete = all(arg.is_concrete for arg in value[1])
-            
 
     def __repr__(self) -> str:
         if isinstance(self.value, list):
@@ -133,8 +140,11 @@ class Argument:
         if symbol.type == clingo.SymbolType.Function:
             if not symbol.arguments and symbol.name:
                 return Argument(symbol.name)
+
             # For nested functions, we can represent them as lists of arguments
             nested_arguments = [cls.from_clingo_symbol(a) for a in symbol.arguments]
+            if symbol.name:
+                return Argument((symbol.name, nested_arguments))
             return Argument(nested_arguments)
         raise ValueError(f"Unsupported clingo symbol type for argument conversion: {symbol}")  # nocoverage
 
@@ -154,9 +164,9 @@ class Argument:
                 return False
             return all(arg_self.allows(arg_other) for arg_self, arg_other in zip(self.value, other.value))
         elif isinstance(self.value, tuple):
-            if not isinstance(other.value, tuple):
+            if not isinstance(other.value, tuple):  # nocoverage
                 return False
-            if self.value[0] != other.value[0]:
+            if self.value[0] != other.value[0]:  # nocoverage
                 return False
             return all(arg_self.allows(arg_other) for arg_self, arg_other in zip(self.value[1], other.value[1]))
         else:

@@ -13,12 +13,10 @@ from xpit.definitions.define import Argument, PortionId, PortionIdFilter, WildCa
         ("tag(id(f(1))).", Argument(("id", [Argument(("f", [Argument(1)]))]))),
         ("tag(id).", Argument("id")),
         ("tag(1).", Argument(1)),
-        ("tag(\"id\").", Argument("id")),
-        ("tag(id()).", Argument(("id",[]))),
+        ('tag("id").', Argument("id")),
+        ("tag(id()).", Argument(("id", []))),
         ("tag(id).", Argument("id")),
         ("tag(id((1,2,3))).", Argument(("id", [Argument([Argument(1), Argument(2), Argument(3)])]))),
-
-        
     ],
 )
 def test_argument_from_ast(ast: str, expected: Argument) -> None:
@@ -28,16 +26,38 @@ def test_argument_from_ast(ast: str, expected: Argument) -> None:
     argument = Argument.from_ast(ast_list[1].head.atom.symbol.arguments[0])
     assert expected.allows(argument)
     assert argument.allows(expected)
-    
-# TODO:
-def test_argument_from_clingo_symbol() -> None:
+
+
+@pytest.mark.parametrize(
+    "symbol, expected",
+    [
+        (clingo.Number(1), Argument(1)),
+        (clingo.String("id"), Argument("id")),
+        (clingo.Function("id", [], True), Argument("id")),
+        (clingo.Function("id", [clingo.Number(1)], True), Argument(("id", [Argument(1)]))),
+        (
+            clingo.Function("id", [clingo.String("a"), clingo.Number(2)], True),
+            Argument(("id", [Argument("a"), Argument(2)])),
+        ),
+        (
+            clingo.Function("id", [clingo.Function("f", [clingo.Number(1)], True)], True),
+            Argument(("id", [Argument(("f", [Argument(1)]))])),
+        ),
+        (
+            clingo.Function(
+                "id", [clingo.Function("f", [clingo.Number(1), clingo.String("b")], True), clingo.Number(2)], True
+            ),
+            Argument(("id", [Argument(("f", [Argument(1), Argument("b")])), Argument(2)])),
+        ),
+        (clingo.Function("", [clingo.Number(1), clingo.Number(2)], True), Argument([Argument(1), Argument(2)])),
+    ],
+)
+def test_argument_from_clingo_symbol(symbol: clingo.symbol.Symbol, expected: Argument) -> None:
     """test creation of Argument from clingo symbol"""
-    raise Exception("continue here")
-    clingo_symbol = clingo.Function("id", [clingo.Function("f", [clingo.Number(1)], True)], True)
-    expected = Argument(("id", [Argument(("f", [Argument(1)]))]))
-    argument = Argument.from_clingo_symbol(clingo_symbol)
+    argument = Argument.from_clingo_symbol(symbol)
     assert expected.allows(argument)
     assert argument.allows(expected)
+
 
 @pytest.mark.parametrize(
     "arg1, arg2, expected",
