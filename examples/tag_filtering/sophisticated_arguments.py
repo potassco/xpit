@@ -16,7 +16,7 @@ configure_logging(sys.stderr, logging.DEBUG, sys.stderr.isatty())
 PROGRAM = """
 a(X) :- X=2..5, not _explain(fact("a",X), msg("The problem is the derivation of a({})",(X))).
 b(X) :- X=2..5, not _explain(fact(b,(X,X)), msg("The problem is the derivation of b({})",(X))).
-c(X) :- X=1..4, not _explain(fact(c(X,"c1","c2"),X), msg("The problem is the derivation of c({})",(X))).
+c(X) :- X=1..4, not _explain(fact(c(X),X), msg("The problem is the derivation of c({})",(X))).
 
 :- a(X), b(Y), c(Z), X+Y=Z, not _explain(constraint(X,Y,Z), msg("The combination of a({}), b({}), and c({}) is invalid",(X,Y,Z))).
 :- a(X), c(Z), Z+Z=X, not _explain(constraint(X,Z), msg("The combination of a({}) and c({}) is invalid",(X,Z))).
@@ -59,11 +59,11 @@ fact_a_id = PortionId(name="fact", arity=2, arguments=["a", WildCardArgument("*"
 fact_b_id = PortionId(
     name="fact",
     arity=2,
-    arguments=[Argument("b"), Argument([Argument(lambda x: x < 3), Argument(WildCardArgument("*"))])],
+    arguments=["b", Argument([Argument(lambda x: x < 3), Argument(WildCardArgument("*"))])],
 )
 # the same holds if inside the Id there is a predicate (like fact(c(X)) in the example program).
 fact_c_id = PortionId(
-    name="fact", arity=2, arguments=[Argument(("c", [Argument(lambda x: x < 3)])), WildCardArgument("*")]
+    name="fact", arity=2, arguments=[Argument(("c", [Argument(lambda x: x >= 3)])), WildCardArgument("*")]
 )
 
 expdir.setup_before_solving(
