@@ -24,7 +24,7 @@ c(X) :- X=1..4, not _explain(fact(c(X,"c1","c2"),X), msg("The problem is the der
 
 ctl = clingo.Control()
 
-expdir = ExplanationDirector(ctl, 50)
+expdir = ExplanationDirector(ctl, 15)
 pe_enc_1 = ProgramExplainer(lp_strings=[PROGRAM])
 
 expdir.register_explainer(pe_enc_1)

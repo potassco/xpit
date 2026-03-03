@@ -216,6 +216,7 @@ class ProgramExplainer(Explainer):
                     # :- _exp(...).
                     backend.add_rule(head=[], body=[a.literal])
                     logger.debug("added: not %s for %s", a.literal, tag_id_instance)
+                    continue
                 exp_por = EPortion(id_=tag_id_instance, exp_atom=a)
                 # :- _exp(...), eunit.
                 backend.add_rule(head=[], body=[a.literal, eunits[idx].assumption_lit])
