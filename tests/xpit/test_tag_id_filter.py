@@ -1,5 +1,7 @@
 """Test tag id filters"""
 
+from typing import Sequence
+
 import clingo
 import pytest
 from clingo.ast import parse_string
@@ -227,3 +229,23 @@ def test_tag_id_filter_append(tag_id_filter: PortionIdFilter, tag_id: PortionId 
     """test append method of tag_id_filter"""
     tag_id_filter.append(tag_id)
     assert all(tag_id_filter.allows(test_tag_id) for test_tag_id in allows)
+
+
+@pytest.mark.parametrize(
+    "portion_id_filter, portion_ids",
+    [
+        (
+            PortionIdFilter([PortionId("tag2", 2)]),
+            [PortionId("tag2", 2, [1, 2]), PortionId("tag2", 3, ["abc", "def", "ghi"])],
+        ),
+        (PortionIdFilter([PortionId("tag2", 2)]), [PortionId("tag2", 2, ["abc", "def"])]),
+        (PortionIdFilter([PortionId("tag2")]), [PortionId("tag2", 3, ["abc", "def", "ghi"])]),
+    ],
+)
+def test_portion_id_filter_extend(portion_id_filter: PortionIdFilter, portion_ids: Sequence[PortionId]) -> None:
+    """test extend method of tag_id_filter"""
+    portion_id_filter.extend(portion_ids)
+    for portion_id in portion_ids:
+        assert (
+            portion_id in portion_id_filter.tags
+        ), f"PortionId {portion_id} should be in the filter after extend, but is not. Filter: {portion_id_filter.tags}"

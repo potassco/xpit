@@ -34,9 +34,9 @@ expdir.setup_before_grounding()
 ctl.ground([("base", [])])
 # expdir.setup_before_solving()
 
-expdir.setup_before_solving(
-    tag_filters=PortionIdFilter([PortionId(name="fact", arity=2, arguments=["a", 2]), "constraint/1"])
-)
+pe_enc_1.add_tag_filter(PortionIdFilter([PortionId("constraint")]))
+
+expdir.setup_before_solving()
 # expdir.setup_before_solving(tag_filters=TagIdFilter([TagId("fact", 1)]))
 
 for core in expdir.compute_minimal_core_eunits():

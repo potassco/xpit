@@ -66,11 +66,13 @@ fact_c_id = PortionId(
     name="fact", arity=2, arguments=[Argument(("c", [Argument(lambda x: x >= 3)])), WildCardArgument("*")]
 )
 
-expdir.setup_before_solving(
-    tag_filters=PortionIdFilter(
+pe_enc_1.add_tag_filter(
+    tag_filter=PortionIdFilter(
         [binary_constraint_id, ternary_constraint_id, even_ternary_constraint_id, fact_a_id, fact_b_id, fact_c_id]
     )
 )
+
+expdir.setup_before_solving()
 
 for core in expdir.compute_minimal_core_eunits():
     print("\n")

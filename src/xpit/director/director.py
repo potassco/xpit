@@ -1,7 +1,7 @@
 """Director module managing explainers and eunit budget allocation."""
 
 from enum import Enum
-from typing import Generator, List, Optional
+from typing import Generator, List
 
 import clingo
 from clingexplaid.mus import CoreComputer
@@ -10,7 +10,6 @@ from clingo.symbol import Function
 
 from xpit.definitions import ExplanationPortion as EPortion
 from xpit.definitions import ExplanationUnit as EUnit
-from xpit.definitions.define import PortionIdFilter
 from xpit.explainer.base import Explainer
 from xpit.utils.logging import get_logger
 
@@ -97,9 +96,7 @@ class ExplanationDirector:
         logger.debug("Scaled EUnit distribution: %s", scaled)
         return scaled
 
-    def setup_before_solving(
-        self, dist_method: DistributionMethod = DistributionMethod.EQUAL, tag_filters: Optional[PortionIdFilter] = None
-    ) -> None:
+    def setup_before_solving(self, dist_method: DistributionMethod = DistributionMethod.EQUAL) -> None:
         """sets up the director and assigns eunit budgets to explainers before solving
         Args:
             dist_method (DistributionMethod): Method for distributing eunits among explainers.
@@ -114,7 +111,7 @@ class ExplanationDirector:
         logger.debug("EUnit distribution among explainers: %s", distribution)
         start = 0
         for idx, exp in enumerate(self.explainers):
-            exp.assign_eunit_budget(self.eunits[start : start + distribution[idx]], tag_filters=tag_filters)
+            exp.assign_eunit_budget(self.eunits[start : start + distribution[idx]])
             start += distribution[idx]
 
     def compute_minimal_core_eunits(

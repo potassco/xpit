@@ -298,6 +298,11 @@ class PortionIdFilter:
         elif isinstance(tag, str):
             self.tags.append(PortionId.from_str(tag))
 
+    def extend(self, tags: Sequence[PortionId | str]) -> None:
+        """Extends the filter with a list of new tags."""
+        for tag in tags:
+            self.append(tag)
+
     def allows(self, tag: PortionId) -> bool:
         """Checks if the given tag is allowed by the filter."""
         return any(tag_filter.allows(tag) for tag_filter in self.tags)

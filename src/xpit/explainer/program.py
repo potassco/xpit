@@ -196,7 +196,7 @@ class ProgramExplainer(Explainer):
             if self._exp_portion_ids.allows(PortionId.from_clingo_symbol(a.symbol.arguments[0]))
         )
 
-    def assign_eunit_budget(self, eunits: List[EUnit], tag_filters: Optional[PortionIdFilter] = None) -> None:
+    def assign_eunit_budget(self, eunits: List[EUnit]) -> None:
         """assigns eunit budget to explainable portions in the program"""
         if not self.control:  # nocoverage
             raise ValueError("Unregistered explainer: control is not set.")
@@ -211,7 +211,7 @@ class ProgramExplainer(Explainer):
                 # Check if tag_id active in this expalainer and in the user-provided tag filters
                 if not self._exp_portion_ids.allows(tag_id_instance):
                     continue  # nocoverage
-                if tag_filters is not None and not tag_filters.allows(tag_id_instance):  # nocoverage
+                if self.tag_filter is not None and not self.tag_filter.allows(tag_id_instance):  # nocoverage
                     # TODO: add test case once tag filtering use cases are cle
                     # :- _exp(...).
                     backend.add_rule(head=[], body=[a.literal])
