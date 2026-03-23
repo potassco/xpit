@@ -21,21 +21,24 @@ class Explainer(ABC):
         """initializes the explainer instance"""
         self.control: Optional[clingo.Control] = None
         self.tag_filter: Optional[PortionIdFilter] = None
+        self.bind_filtered_ids: bool = False
 
     def set_control(self, control: clingo.Control) -> None:
         """sets the clingo control object for the explainer"""
         self.control = control
 
-    def add_tag_filter(self, tag_filter: PortionIdFilter) -> None:
+    def add_tag_filter(self, tag_filter: PortionIdFilter, bind_filterer_ids: bool = False) -> None:
         """adds a tag filter to the explainer"""
         if self.tag_filter is not None:
             self.tag_filter.extend(tag_filter.tags)
         else:
             self.tag_filter = tag_filter
+        self.bind_filtered_ids = bind_filterer_ids
 
     def clear_tag_filter(self) -> None:
         """clears the tag filter from the explainer"""
         self.tag_filter = None
+        self.bind_filtered_ids = False
 
     def append_portion_id(self, portion_id: str | PortionId) -> None:
         """appends a portion id to the explainer's tag filter"""

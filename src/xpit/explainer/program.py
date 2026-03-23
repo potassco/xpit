@@ -203,8 +203,10 @@ class ProgramExplainer(Explainer):
         logger.debug("Assigning eunit budget to explanation portions in ProgramExplainer.")
         logger.debug("EPortion ids: %s", self._exp_portion_ids)
         logger.debug("EUnits: %s", eunits)
+        idx = 0
+        if self.bind_filtered_ids and self.tag_filter is not None:
+            logger.debug("Binding filtered out portion ids to a single eunit.")  # nocoverage
         with self.control.backend() as backend:
-            idx = 0
             for a in self.control.symbolic_atoms.by_signature("_exp", 2):
                 # tag_id = extract_tag_id(a.symbol.arguments[0])
                 tag_id_instance = PortionId.from_clingo_symbol(a.symbol.arguments[0])
@@ -212,19 +214,25 @@ class ProgramExplainer(Explainer):
                 if not self._exp_portion_ids.allows(tag_id_instance):
                     continue  # nocoverage
                 if self.tag_filter is not None and not self.tag_filter.allows(tag_id_instance):  # nocoverage
-                    # TODO: add test case once tag filtering use cases are cle
+                    # TODO: add test case once tag filtering use cases are clear
                     # :- _exp(...).
-                    backend.add_rule(head=[], body=[a.literal])
-                    logger.debug("added: not %s for %s", a.literal, tag_id_instance)
+                    if not self.bind_filtered_ids:
+                        backend.add_rule(head=[], body=[a.literal])
+                        logger.debug("added: not %s for %s", a.literal, tag_id_instance)
+                    else:
+                        self._bind_eunit_to_portion(backend, eunits[-1], EPortion(id_=tag_id_instance, exp_atom=a))
                     continue
-                exp_por = EPortion(id_=tag_id_instance, exp_atom=a)
-                # :- _exp(...), eunit.
-                backend.add_rule(head=[], body=[a.literal, eunits[idx].assumption_lit])
-                # _exp(...) :- not eunit.
-                backend.add_rule(head=[a.literal], body=[-1 * eunits[idx].assumption_lit], choice=False)
-                self._binding[eunits[idx]].append(exp_por)
-                if idx + 1 < len(eunits):
+                self._bind_eunit_to_portion(backend, eunits[idx], EPortion(id_=tag_id_instance, exp_atom=a))
+                if idx + 1 + int(self.bind_filtered_ids) < len(eunits):
                     idx += 1
+
+    def _bind_eunit_to_portion(self, backend: clingo.backend.Backend, eunit: EUnit, portion: EPortion) -> None:
+        logger.debug("Binding filtered out portion id %s to eunit %s", portion.id_, eunit)
+        # :- _exp(...), eunit.
+        backend.add_rule(head=[], body=[portion.exp_atom.literal, eunit.assumption_lit])
+        # _exp(...) :- not eunit.
+        backend.add_rule(head=[portion.exp_atom.literal], body=[-1 * eunit.assumption_lit], choice=False)
+        self._binding[eunit].append(portion)
 
     def get_explanation_portions(self, eunit: EUnit) -> List[EPortion]:
         """gets the explanation portions bound to the given eunit"""
