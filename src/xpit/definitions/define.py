@@ -4,7 +4,7 @@ Class definitions for explanation related abstractions
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Optional, Protocol, Self, Sequence, cast, overload
+from typing import Any, Callable, Optional, Protocol, Self, Sequence, cast, overload
 
 import clingo
 import clingo.ast
@@ -104,6 +104,16 @@ class Argument:
             return f"<callable {self.value}>"
         return f"{self.value}"
 
+    def unpack(self) -> Any:
+        """Unpacks the argument value for use in filters."""
+        if not self.is_concrete:
+            raise ValueError(f"Cannot unpack non-concrete argument: {self.value}")
+        if isinstance(self.value, list):
+            return [arg.unpack() for arg in self.value]
+        if isinstance(self.value, tuple) and len(self.value) == 2 and isinstance(self.value[0], str):
+            return (self.value[0], [arg.unpack() for arg in self.value[1]])
+        return self.value
+
     @classmethod
     def from_ast(cls, arg: clingo.ast.AST) -> "Argument":
         """Create Argument from clingo ast"""
@@ -186,22 +196,30 @@ class PortionId:
             Sequence[
                 Argument | str | int | Callable[[str], bool] | Callable[[int], bool] | list[Argument] | WildCardArgument
             ]
+            | Callable[[Any], bool]
         ] = None,
     ) -> None:
         self.name = name
-        assert arity is None or arity >= 0, "Arity must be a non-negative integer or None"
-        assert arity is not None or arguments is None, "Arguments must be None if arity is None"
-        assert arguments is None or len(arguments) == arity, "Number of arguments must match the arity"
+        if arity is not None and arity < 0:
+            raise ValueError("Arity must be a non-negative integer or None")  # nocoverage
+        if arity is None and arguments is not None:
+            raise ValueError("Arguments must be None if arity is None")  # nocoverage
+        # if arguments is not None and len(arguments) != arity:
+        #     raise ValueError("Number of arguments must match the arity")
         self.arity = arity
+        self.arguments: Optional[Sequence[Argument] | Callable[[Any], bool]]
         if arguments is None:
             self.arguments = None
         else:
-            self.arguments = []
-            for arg in arguments:
-                if not isinstance(arg, (Argument)):
-                    self.arguments.append(Argument(arg))
-                else:
-                    self.arguments.append(arg)
+            if callable(arguments):  # nocoverage
+                self.arguments = arguments
+            else:
+                self.arguments = []
+                for arg in arguments:
+                    if not isinstance(arg, (Argument)):
+                        self.arguments.append(Argument(arg))
+                    else:
+                        self.arguments.append(arg)
 
     @classmethod
     def from_str(cls, tag_str: str) -> "PortionId":
@@ -228,6 +246,8 @@ class PortionId:
             return self.name
         if self.arguments is None:
             return f"{self.name}/{self.arity}"
+        if callable(self.arguments):
+            return f"{self.name}({self.arguments})"
         return f"{self.name}({', '.join(repr(arg) for arg in self.arguments)})"
 
     @classmethod
@@ -271,6 +291,19 @@ class PortionId:
             return False
         if self.arguments is None:
             return True
+        if not isinstance(other.arguments, Sequence):
+            logger.error(
+                "Expected other.arguments to be a Sequence for callable argument filter, got: %s", other.arguments
+            )
+            return False
+        if callable(self.arguments):
+            try:
+                return self.arguments(*[arg.unpack() for arg in other.arguments])
+            except ValueError as e:
+                logger.error("Error unpacking arguments: %s", e)
+            except TypeError as e:
+                logger.error("Error applying callable argument filter: %s", e)
+            return False
         return all(arg_self.allows(arg_other) for arg_self, arg_other in zip(self.arguments, other.arguments))
 
 

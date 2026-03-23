@@ -1,9 +1,10 @@
 """Test tag id filters"""
 
-from typing import Sequence
+from typing import Any, Sequence
 
 import clingo
 import pytest
+from _pytest.logging import LogCaptureFixture
 from clingo.ast import parse_string
 
 from xpit.definitions.define import Argument, PortionId, PortionIdFilter, WildCardArgument
@@ -134,6 +135,35 @@ def test_tag_id_init_from_str(tag_str: str, expected: PortionId) -> None:
 
 
 @pytest.mark.parametrize(
+    "self_id, other_id, message",
+    [
+        (
+            PortionId("r1", 3, [Argument(4), Argument("string"), Argument(WildCardArgument("*"))]),
+            PortionId("r1", 3, lambda x, y, z: x == 4 and y == "string"),  # type: ignore
+            "Expected other.arguments to be a Sequence for callable argument filter, got:",
+        ),
+        (
+            PortionId("r1", 3, lambda x, y, z: x == 4 and y == "string"),  # type: ignore
+            PortionId("r1", 3, [Argument(4), Argument("string"), Argument(WildCardArgument("*"))]),
+            "Error unpacking arguments: Cannot unpack non-concrete argument: WildCardArgument.WILDCARD",
+        ),
+        (
+            PortionId("r1", 3, lambda x, y: x == 4 and y == "string"),  # type: ignore
+            PortionId("r1", 3, [Argument(4)]),
+            "Error applying callable argument filter: <lambda>() missing 1 required positional argument:",
+        ),
+    ],
+)
+def test_portion_id_allows_errors(
+    caplog: LogCaptureFixture, self_id: PortionId, other_id: PortionId, message: str
+) -> None:
+    """test that allows method raises error for non-concrete arguments"""
+    with caplog.at_level("ERROR"):
+        assert self_id.allows(other_id) is False
+    assert message in caplog.text
+
+
+@pytest.mark.parametrize(
     "tag_id, expected",
     [
         [PortionId("r1", 3, [Argument(4), Argument("string"), Argument(WildCardArgument("*"))]), "r1(4, string, *)"],
@@ -145,11 +175,12 @@ def test_tag_id_init_from_str(tag_str: str, expected: PortionId) -> None:
         [PortionId("r1", 0), "r1"],
         [PortionId("r1", 0), "r1"],
         [PortionId("r1", 2), "r1/2"],
+        [PortionId("r1", 2, lambda x: True), "r1(<function <lambda> at"],
     ],
 )
 def test_repr_tagid(tag_id: PortionId, expected: str) -> None:
     """test representation of tag_id"""
-    assert repr(tag_id) == expected
+    assert expected in repr(tag_id)
 
 
 def test_repr_argument_lambda_in_argument() -> None:
@@ -249,3 +280,24 @@ def test_portion_id_filter_extend(portion_id_filter: PortionIdFilter, portion_id
         assert (
             portion_id in portion_id_filter.tags
         ), f"PortionId {portion_id} should be in the filter after extend, but is not. Filter: {portion_id_filter.tags}"
+
+
+@pytest.mark.parametrize(
+    "argument, expected",
+    [
+        (Argument(5), 5),
+        (Argument("a"), "a"),
+        (Argument([Argument(1), Argument("a")]), [1, "a"]),
+        (Argument([Argument(1), Argument(("f", [Argument("a")]))]), [1, ("f", ["a"])]),
+        (Argument(lambda x: x < 10), None),
+        (Argument(WildCardArgument("*")), None),
+        (Argument([Argument(lambda x: x < 10), Argument("a")]), None),
+    ],
+)
+def test_argument_unpack(argument: Argument, expected: Any) -> None:
+    """test unpacking of argument"""
+    if expected is None:
+        with pytest.raises(ValueError, match=r"Cannot unpack non-concrete argument:*"):
+            argument.unpack()
+    else:
+        assert argument.unpack() == expected
