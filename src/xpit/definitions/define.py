@@ -168,7 +168,11 @@ class Argument:
             raise ValueError(f"Other argument must be concrete (string or integer) for matching. Got: {other.value}")
         if callable(self.value):
             if isinstance(other.value, (str, int)):
-                return self.value(other.value)
+                try:
+                    return self.value(other.value)
+                except TypeError as e:
+                    logger.error("Error applying callable argument filter: %s", e)
+                    raise TypeError(f"Error applying callable argument filter: {e}") from e
         elif isinstance(self.value, list):
             if not isinstance(other.value, list) or len(self.value) != len(other.value):
                 return False
@@ -310,15 +314,18 @@ class PortionId:
             logger.error(
                 "Expected other.arguments to be a Sequence for callable argument filter, got: %s", other.arguments
             )
-            return False
+            raise TypeError(
+                f"Expected other.arguments to be a Sequence for callable argument filter, got: {other.arguments}"
+            )
         if callable(self._arguments):
             try:
                 return self._arguments(*[arg.unpack() for arg in other.arguments])
             except ValueError as e:
                 logger.error("Error unpacking arguments: %s", e)
+                raise ValueError(f"Error unpacking arguments for callable argument filter: {e}") from e
             except TypeError as e:
                 logger.error("Error applying callable argument filter: %s", e)
-            return False
+                raise TypeError(f"Error applying callable argument filter: {e}") from e
         return all(arg_self.allows(arg_other) for arg_self, arg_other in zip(self._arguments, other.arguments))
 
 

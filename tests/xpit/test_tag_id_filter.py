@@ -135,31 +135,47 @@ def test_tag_id_init_from_str(tag_str: str, expected: PortionId) -> None:
 
 
 @pytest.mark.parametrize(
-    "self_id, other_id, message",
+    "self_id, other_id, exception, message",
     [
         (
             PortionId("r1", 3, [Argument(4), Argument("string"), Argument(WildCardArgument("*"))]),
             PortionId("r1", 3, lambda x, y, z: x == 4 and y == "string"),  # type: ignore
+            TypeError,
             "Expected other.arguments to be a Sequence for callable argument filter, got:",
         ),
         (
             PortionId("r1", 3, lambda x, y, z: x == 4 and y == "string"),  # type: ignore
             PortionId("r1", 3, [Argument(4), Argument("string"), Argument(WildCardArgument("*"))]),
+            ValueError,
             "Error unpacking arguments: Cannot unpack non-concrete argument: WildCardArgument.WILDCARD",
         ),
         (
             PortionId("r1", 3, lambda x, y: x == 4 and y == "string"),  # type: ignore
             PortionId("r1", 3, [Argument(4), Argument("string"), Argument(5)]),
+            TypeError,
             "Error applying callable argument filter: <lambda>() takes 2 positional arguments but 3 were given",
+        ),
+        (
+            PortionId("r1", 1, lambda x: x * x == 4),
+            PortionId("r1", 1, [Argument("string")]),
+            TypeError,
+            "Error applying callable argument filter: can't multiply sequence by non-int",
+        ),
+        (
+            PortionId("r1", 1, [lambda x: x * x == 4]),
+            PortionId("r1", 1, [Argument("string")]),
+            TypeError,
+            "Error applying callable argument filter: can't multiply sequence by non-int",
         ),
     ],
 )
 def test_portion_id_allows_errors(
-    caplog: LogCaptureFixture, self_id: PortionId, other_id: PortionId, message: str
+    caplog: LogCaptureFixture, self_id: PortionId, other_id: PortionId, exception: type, message: str
 ) -> None:
     """test that allows method raises error for non-concrete arguments"""
     with caplog.at_level("ERROR"):
-        assert self_id.allows(other_id) is False
+        with pytest.raises(exception):
+            self_id.allows(other_id)
     assert message in caplog.text
 
 
