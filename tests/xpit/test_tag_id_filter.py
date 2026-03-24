@@ -149,8 +149,8 @@ def test_tag_id_init_from_str(tag_str: str, expected: PortionId) -> None:
         ),
         (
             PortionId("r1", 3, lambda x, y: x == 4 and y == "string"),  # type: ignore
-            PortionId("r1", 3, [Argument(4)]),
-            "Error applying callable argument filter: <lambda>() missing 1 required positional argument:",
+            PortionId("r1", 3, [Argument(4), Argument("string"), Argument(5)]),
+            "Error applying callable argument filter: <lambda>() takes 2 positional arguments but 3 were given",
         ),
     ],
 )

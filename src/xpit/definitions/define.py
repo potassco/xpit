@@ -199,27 +199,42 @@ class PortionId:
             | Callable[[Any], bool]
         ] = None,
     ) -> None:
-        self.name = name
+        self._name = name
         if arity is not None and arity < 0:
             raise ValueError("Arity must be a non-negative integer or None")  # nocoverage
         if arity is None and arguments is not None:
             raise ValueError("Arguments must be None if arity is None")  # nocoverage
         # if arguments is not None and len(arguments) != arity:
         #     raise ValueError("Number of arguments must match the arity")
-        self.arity = arity
-        self.arguments: Optional[Sequence[Argument] | Callable[[Any], bool]]
+        self._arity = arity
+        self._arguments: Optional[Sequence[Argument] | Callable[[Any], bool]]
         if arguments is None:
-            self.arguments = None
+            self._arguments = None
         else:
             if callable(arguments):  # nocoverage
-                self.arguments = arguments
+                self._arguments = arguments
             else:
-                self.arguments = []
+                self._arguments = []
                 for arg in arguments:
                     if not isinstance(arg, (Argument)):
-                        self.arguments.append(Argument(arg))
+                        self._arguments.append(Argument(arg))
                     else:
-                        self.arguments.append(arg)
+                        self._arguments.append(arg)
+
+    @property
+    def name(self) -> str:
+        """Read-only access to the name."""
+        return self._name
+
+    @property
+    def arity(self) -> Optional[int]:
+        """Read-only access to the arity."""
+        return self._arity
+
+    @property
+    def arguments(self) -> Optional[Sequence[Argument] | Callable[[Any], bool]]:
+        """Read-only access to the arguments."""
+        return self._arguments
 
     @classmethod
     def from_str(cls, tag_str: str) -> "PortionId":
@@ -240,15 +255,15 @@ class PortionId:
             raise ValueError(f"Invalid tag format: {tag_str}. Expected 'tag_id' or 'tag_id/arity'.")
 
     def __repr__(self) -> str:
-        if self.arity is None:
-            return f"{self.name}/*"
-        if self.arity == 0:
-            return self.name
-        if self.arguments is None:
-            return f"{self.name}/{self.arity}"
-        if callable(self.arguments):
-            return f"{self.name}({self.arguments})"
-        return f"{self.name}({', '.join(repr(arg) for arg in self.arguments)})"
+        if self._arity is None:
+            return f"{self._name}/*"
+        if self._arity == 0:
+            return self._name
+        if self._arguments is None:
+            return f"{self._name}/{self._arity}"
+        if callable(self._arguments):
+            return f"{self._name}({self._arguments})"
+        return f"{self._name}({', '.join(repr(arg) for arg in self._arguments)})"
 
     @classmethod
     def from_ast(cls, arg: clingo.ast.AST, sig_only: bool = True) -> "PortionId":
@@ -283,28 +298,28 @@ class PortionId:
         """Checks if this TagId allows another TagId based on name, arity, and arguments."""
         if not isinstance(other, PortionId):  # nocoverage
             return ValueError("other: %s must be a TagId", other)
-        if self.name != other.name:
+        if self._name != other.name:
             return False
-        if self.arity is None:
+        if self._arity is None:
             return True
-        if self.arity != other.arity:  # nocoverage
+        if self._arity != other.arity:  # nocoverage
             return False
-        if self.arguments is None:
+        if self._arguments is None:
             return True
         if not isinstance(other.arguments, Sequence):
             logger.error(
                 "Expected other.arguments to be a Sequence for callable argument filter, got: %s", other.arguments
             )
             return False
-        if callable(self.arguments):
+        if callable(self._arguments):
             try:
-                return self.arguments(*[arg.unpack() for arg in other.arguments])
+                return self._arguments(*[arg.unpack() for arg in other.arguments])
             except ValueError as e:
                 logger.error("Error unpacking arguments: %s", e)
             except TypeError as e:
                 logger.error("Error applying callable argument filter: %s", e)
             return False
-        return all(arg_self.allows(arg_other) for arg_self, arg_other in zip(self.arguments, other.arguments))
+        return all(arg_self.allows(arg_other) for arg_self, arg_other in zip(self._arguments, other.arguments))
 
 
 class PortionIdFilter:
