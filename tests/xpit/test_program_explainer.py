@@ -215,7 +215,7 @@ def test_clear_tag_filter() -> None:
     explainer = ProgramExplainer()
     tags: list[PortionId | str] = ["tag1", "tag2"]
     explainer.add_tag_filter(PortionIdFilter(tags))
-    explainer.clear_tag_filter()
+    explainer.reset_tag_filter()
     assert not explainer.tag_filter, "Tag filters should be cleared."
 
 

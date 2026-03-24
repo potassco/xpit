@@ -310,7 +310,7 @@ class PortionId:
 class PortionIdFilter:
     """Class representing a tag filter for explanation portions."""
 
-    def __init__(self, tags: list[PortionId | str]) -> None:
+    def __init__(self, tags: Sequence[PortionId | str]) -> None:
         """Initializes a TagIdFilter with a list of TagIds or strings
         (which are converted to TagIds with arity given (or None if not specified)).
         The filter allows tags that match any of the provided tags."""

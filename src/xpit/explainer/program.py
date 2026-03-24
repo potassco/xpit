@@ -204,7 +204,7 @@ class ProgramExplainer(Explainer):
         logger.debug("EPortion ids: %s", self._exp_portion_ids)
         logger.debug("EUnits: %s", eunits)
         idx = 0
-        if self.bind_filtered_ids and self.tag_filter is not None:
+        if self.bind_filtered_out_ids and self.tag_filter is not None:
             logger.debug("Binding filtered out portion ids to a single eunit.")  # nocoverage
         with self.control.backend() as backend:
             for a in self.control.symbolic_atoms.by_signature("_exp", 2):
@@ -216,14 +216,14 @@ class ProgramExplainer(Explainer):
                 if self.tag_filter is not None and not self.tag_filter.allows(tag_id_instance):  # nocoverage
                     # TODO: add test case once tag filtering use cases are clear
                     # :- _exp(...).
-                    if not self.bind_filtered_ids:
+                    if not self.bind_filtered_out_ids:
                         backend.add_rule(head=[], body=[a.literal])
                         logger.debug("added: not %s for %s", a.literal, tag_id_instance)
                     else:
                         self._bind_eunit_to_portion(backend, eunits[-1], EPortion(id_=tag_id_instance, exp_atom=a))
                     continue
                 self._bind_eunit_to_portion(backend, eunits[idx], EPortion(id_=tag_id_instance, exp_atom=a))
-                if idx + 1 + int(self.bind_filtered_ids) < len(eunits):
+                if idx + 1 + int(self.bind_filtered_out_ids) < len(eunits):
                     idx += 1
 
     def _bind_eunit_to_portion(self, backend: clingo.backend.Backend, eunit: EUnit, portion: EPortion) -> None:

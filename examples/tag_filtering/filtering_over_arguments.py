@@ -5,7 +5,7 @@ import sys
 
 import clingo
 
-from xpit.definitions.define import Argument, PortionId, PortionIdFilter, WildCardArgument
+from xpit.definitions.define import PortionId, PortionIdFilter
 from xpit.director import ExplanationDirector
 from xpit.explainer import ProgramExplainer
 from xpit.utils.logging import configure_logging
@@ -35,8 +35,11 @@ ctl.ground([("base", [])])
 
 pe_enc_1.add_tag_filter(
     tag_filter=PortionIdFilter(
-        [PortionId(name="constraint", arity=4), PortionId(name="fact", arity=3, arguments=lambda x,y,_: x+y==4),
-         PortionId(name="fact", arity=2, arguments=lambda x,y: x-y>3)]
+        [
+            PortionId(name="constraint", arity=4),
+            PortionId(name="fact", arity=3, arguments=lambda x, y, _: x + y == 4),
+            PortionId(name="fact", arity=2, arguments=lambda x, y: x - y > 3),
+        ]
     )
 )
 
