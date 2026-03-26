@@ -7,6 +7,7 @@ import pytest
 from clingo.ast import parse_string
 
 from tests.xpit.test_main import TEST_DIR
+from xpit.definitions.define import PortionId, PortionIdFilter
 from xpit.director.director import ExplanationDirector
 from xpit.explainer.program import ExplanationPortionTransformer, ProgramExplainer
 
@@ -56,15 +57,15 @@ def test_add_lp_strings(director_factory: Callable[[int], ExplanationDirector]) 
 @pytest.mark.parametrize(
     "file, expected_ids, duplicate_warning",
     [
-        ("not_a_of_x.lp", ["r1"], False),
-        ("dupl_ids.lp", ["r1"], True),
+        ("not_a_of_x.lp", [PortionId("r1", 0)], False),
+        ("dupl_ids.lp", [PortionId("r1", 0)], True),
     ],
 )
 def test_setup_before_grounding(
     caplog: pytest.LogCaptureFixture,
     director_factory: Callable[[int], "ExplanationDirector"],
     file: str,
-    expected_ids: list[str],
+    expected_ids: list[PortionId],
     duplicate_warning: bool,
 ) -> None:
     """test setup_before_grounding of ProgramExplainer."""
@@ -76,9 +77,11 @@ def test_setup_before_grounding(
         director.setup_before_grounding()
     # pylint: disable=protected-access
     assert len(explainer._exp_portion_ids) == len(expected_ids), "There should be 1 explanation portion identified."
-    assert all(rid in explainer._exp_portion_ids for rid in expected_ids), "Expected explanation portion id not found."
+    assert all(
+        explainer._exp_portion_ids.allows(rid) for rid in expected_ids
+    ), "Expected explanation portion id not found."
     if duplicate_warning:
-        assert "Duplicate explanation portion id found" in caplog.text
+        assert "Duplicate explainable portion id found" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -184,3 +187,48 @@ def test_get_eunit_request(
     ctl.ground([("base", [])])
     request = explainer.get_eunit_request()
     assert request == expected_request, f"EUnit request should be {expected_request}."
+
+
+def test_add_tag_filter() -> None:
+    """Test adding tag filters to ProgramExplainer."""
+    explainer = ProgramExplainer()
+    assert not explainer.tag_filter, "Initial tag_filters should be empty."
+    tags: list[PortionId | str] = ["tag1", "tag2"]
+    explainer.add_tag_filter(PortionIdFilter(tags))
+    assert explainer.tag_filter is not None, "Tag filter should be initialized after adding."
+    for tag in tags:
+        assert str(PortionId(tag) if isinstance(tag, str) else tag) in [
+            str(t) for t in explainer.tag_filter.tags
+        ], f"Tag filter {tag} should be added."
+    assert len(explainer.tag_filter) == len(tags), "Number of tag_filters should match added tags."
+    tags2: list[PortionId | str] = ["tag3", "tag4"]
+    explainer.add_tag_filter(PortionIdFilter(tags2))
+    for tag in tags2:
+        assert str(PortionId(tag) if isinstance(tag, str) else tag) in [
+            str(t) for t in explainer.tag_filter.tags
+        ], f"Tag filter {tag} should be added."
+    assert len(explainer.tag_filter) == len(tags) + len(tags2), "Number of tag_filters should match added tags."
+
+
+def test_clear_tag_filter() -> None:
+    """Test clearing tag filters in ProgramExplainer."""
+    explainer = ProgramExplainer()
+    tags: list[PortionId | str] = ["tag1", "tag2"]
+    explainer.add_tag_filter(PortionIdFilter(tags))
+    explainer.reset_tag_filter()
+    assert not explainer.tag_filter, "Tag filters should be cleared."
+
+
+def test_append_portion_to_filter() -> None:
+    """Test appending explanation portions in ProgramExplainer."""
+    explainer = ProgramExplainer()
+    assert not explainer.tag_filter, "Initial tag_filters should be empty."
+    tags: list[PortionId | str] = ["tag1", PortionId("tag2", 2)]
+    for tag in tags:
+        explainer.append_portion_id(tag)
+        assert explainer.tag_filter is not None, "Tag filter should be initialized after appending."
+        assert str(PortionId(tag) if isinstance(tag, str) else tag) in [
+            str(t) for t in explainer.tag_filter.tags
+        ], f"Tag filter {tag} should be added."
+    assert explainer.tag_filter is not None, "Tag filter should be initialized after appending."
+    assert len(explainer.tag_filter) == len(tags), "Number of tag_filters should match added tags."

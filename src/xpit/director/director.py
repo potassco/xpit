@@ -105,7 +105,7 @@ class ExplanationDirector:
         if dist_method == DistributionMethod.EQUAL:
             distribution = self._distribute_eunits_equally()
         elif dist_method == DistributionMethod.BY_REQUEST:  # nocoverage
-            distribution = self._distribute_eunits_by_request()
+            distribution = self._distribute_eunits_by_request()  # TODO: add tag_filters to by_request method as well
         else:
             raise ValueError(f"Unknown distribution method: {dist_method}")  # nocoverage
         logger.debug("EUnit distribution among explainers: %s", distribution)
