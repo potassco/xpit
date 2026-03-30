@@ -152,7 +152,8 @@ def test_distribute_eunits_by_request(
     director.setup_before_grounding()
     director.control.ground([("base", [])])
 
-    distribution = director._distribute_eunits_by_request()  # pylint: disable=protected-access
+    requests = [exp.get_eunit_request() for exp in director.explainers]
+    distribution = director._distribute_eunits_by_request(requests)  # pylint: disable=protected-access
 
     assert len(distribution) == len(
         expected_distribution

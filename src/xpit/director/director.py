@@ -1,7 +1,7 @@
 """Director module managing explainers and eunit budget allocation."""
 
 from enum import Enum
-from typing import Generator, List
+from typing import Generator, List, Optional
 
 import clingo
 from clingexplaid.mus import CoreComputer
@@ -29,18 +29,19 @@ class ExplanationDirector:
     def __init__(
         self,
         control: clingo.Control,
-        maximum_number_of_eunits: int,
+        maximum_number_of_eunits: Optional[int] = None,
     ) -> None:
         self.control = control
-        if maximum_number_of_eunits < 1:
+        if maximum_number_of_eunits is not None and maximum_number_of_eunits < 1:
             raise ValueError("Maximum number of eunits must be at least 1.")
-        self.maximum_number_of_eunits = maximum_number_of_eunits
+        self.eunit_auto = maximum_number_of_eunits is None
+        self.maximum_number_of_eunits = maximum_number_of_eunits or 0
         self.explainers: List[Explainer] = []
         self.eunits: List[EUnit] = []
 
     def register_explainer(self, explainer: Explainer) -> None:
         """registers an explainer module with the director"""
-        if len(self.explainers) == self.maximum_number_of_eunits:
+        if not self.eunit_auto and len(self.explainers) == self.maximum_number_of_eunits:
             raise ValueError("Number of registered explainers exceeds maximum number of eunits.")
         self.explainers.append(explainer)
         explainer.set_control(self.control)
@@ -72,9 +73,8 @@ class ExplanationDirector:
         floor = self.maximum_number_of_eunits // len(self.explainers)
         return [floor + (1 if i < mod_rest else 0) for i in range(len(self.explainers))]
 
-    def _distribute_eunits_by_request(self) -> List[int]:
+    def _distribute_eunits_by_request(self, requests: List[int]) -> List[int]:
         """requests eunit budgets from explainers and distributes accordingly"""
-        requests = [exp.get_eunit_request() for exp in self.explainers]
         total_requested = sum(requests)
         if total_requested <= self.maximum_number_of_eunits:
             return requests
@@ -101,11 +101,28 @@ class ExplanationDirector:
         Args:
             dist_method (DistributionMethod): Method for distributing eunits among explainers.
         """
+        requests: Optional[List[int]] = None
+        if self.eunit_auto:
+            if dist_method != DistributionMethod.BY_REQUEST:
+                logger.warning(
+                    "EUnit auto mode is enabled, but distribution method is not BY_REQUEST. Switching to BY_REQUEST."
+                )
+                dist_method = DistributionMethod.BY_REQUEST
+            requests = [exp.get_eunit_request() for exp in self.explainers]
+            total_requested = sum(requests)
+            logger.debug(
+                "%s EUnits requested from explainers; set maximum_number_of_eunits accordingly", total_requested
+            )
+            self.maximum_number_of_eunits = total_requested
+
         self._create_eunits()
         if dist_method == DistributionMethod.EQUAL:
             distribution = self._distribute_eunits_equally()
         elif dist_method == DistributionMethod.BY_REQUEST:  # nocoverage
-            distribution = self._distribute_eunits_by_request()  # TODO: add tag_filters to by_request method as well
+            requests = requests if requests is not None else [exp.get_eunit_request() for exp in self.explainers]
+            distribution = self._distribute_eunits_by_request(
+                requests
+            )  # TODO: add tag_filters to by_request method as well
         else:
             raise ValueError(f"Unknown distribution method: {dist_method}")  # nocoverage
         logger.debug("EUnit distribution among explainers: %s", distribution)

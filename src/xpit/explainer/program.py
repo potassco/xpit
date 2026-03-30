@@ -227,7 +227,7 @@ class ProgramExplainer(Explainer):
                     idx += 1
 
     def _bind_eunit_to_portion(self, backend: clingo.backend.Backend, eunit: EUnit, portion: EPortion) -> None:
-        logger.debug("Binding filtered out portion id %s to eunit %s", portion.id_, eunit)
+        logger.debug("Binding portion id %s to eunit %s", portion.id_, eunit)
         # :- _exp(...), eunit.
         backend.add_rule(head=[], body=[portion.exp_atom.literal, eunit.assumption_lit])
         # _exp(...) :- not eunit.
