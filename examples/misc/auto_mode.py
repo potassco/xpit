@@ -15,16 +15,15 @@ configure_logging(sys.stderr, logging.DEBUG, sys.stderr.isatty())
 ctl = clingo.Control()
 
 PROGRAM1 = """
-a(X) :- b(X), X=1..5, not _explain(r1(X), msg("",(X))).
-a(X) :- not c(X), X=1..5, not _explain(r2(X), msg("",(X))).
-a(X) :- c(X): b(X); X=1..5, not _explain(r3(X), msg("",(X))).
+a(X) :- b(X), X=1..3, not _explain(r1(X), msg("",(X))).
+a(X) :- not c(X), X=1..3, not _explain(r2(X), msg("",(X))).
+a(X) :- c(X): b(X); X=1..3, not _explain(r3(X), msg("",(X))).
 :- a(X).
-
 """
 
 PROGRAM2 = """
-b(X) :- X=1..3, not _explain(r4(X), msg("",(X))).
-c(X):- X=3..5, not _explain(r5(X), msg("",(X))).
+b(X) :- X=1..2, not _explain(r4(X), msg("",(X))).
+c(X) :- X=2..3, not _explain(r5(X), msg("",(X))).
 """
 
 expdir = ExplanationDirector(ctl)

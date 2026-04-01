@@ -33,10 +33,17 @@ pe_enc_2 = ProgramExplainer(lp_strings=[PROGRAM2])
 expdir.register_explainer(pe_enc_1)
 expdir.register_explainer(pe_enc_2)
 
-expdir.setup_before_grounding()
+# pe_enc_1.add_tag_filter(tagfilter(...))
+# explainer:
+#   - tag_filter(r1,r2)
+
+expdir.setup_before_grounding()  # this is supposed to clean the filter;
 
 ctl.ground([("base", [])])
+# pe_enc_1.add_tag_filter(tagfilter(...))
 
+# explainer:
+#   - tag_filter = None
 expdir.setup_before_solving(dist_method=DistributionMethod.BY_REQUEST)
 
 for core in expdir.compute_minimal_core_eunits():

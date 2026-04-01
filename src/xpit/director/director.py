@@ -73,8 +73,9 @@ class ExplanationDirector:
         floor = self.maximum_number_of_eunits // len(self.explainers)
         return [floor + (1 if i < mod_rest else 0) for i in range(len(self.explainers))]
 
-    def _distribute_eunits_by_request(self, requests: List[int]) -> List[int]:
+    def _distribute_eunits_by_request(self) -> List[int]:
         """requests eunit budgets from explainers and distributes accordingly"""
+        requests = [exp.get_eunit_request() for exp in self.explainers]
         total_requested = sum(requests)
         if total_requested <= self.maximum_number_of_eunits:
             return requests
@@ -96,35 +97,30 @@ class ExplanationDirector:
         logger.debug("Scaled EUnit distribution: %s", scaled)
         return scaled
 
-    def setup_before_solving(self, dist_method: DistributionMethod = DistributionMethod.EQUAL) -> None:
+    def setup_before_solving(self, dist_method: Optional[DistributionMethod] = None) -> None:
         """sets up the director and assigns eunit budgets to explainers before solving
         Args:
             dist_method (DistributionMethod): Method for distributing eunits among explainers.
         """
-        requests: Optional[List[int]] = None
         if self.eunit_auto:
-            if dist_method != DistributionMethod.BY_REQUEST:
-                logger.warning(
-                    "EUnit auto mode is enabled, but distribution method is not BY_REQUEST. Switching to BY_REQUEST."
-                )
-                dist_method = DistributionMethod.BY_REQUEST
-            requests = [exp.get_eunit_request() for exp in self.explainers]
-            total_requested = sum(requests)
+            if dist_method is not None:  # nocoverage
+                logger.warning("EUnit auto mode is enabled, but a distribution method is given. Ignoring given method.")
+            distribution = [exp.get_eunit_request() for exp in self.explainers]
+            total_requested = sum(distribution)
             logger.debug(
                 "%s EUnits requested from explainers; set maximum_number_of_eunits accordingly", total_requested
             )
             self.maximum_number_of_eunits = total_requested
 
-        self._create_eunits()
-        if dist_method == DistributionMethod.EQUAL:
+        elif dist_method is None or dist_method == DistributionMethod.EQUAL:  # default case
             distribution = self._distribute_eunits_equally()
         elif dist_method == DistributionMethod.BY_REQUEST:  # nocoverage
-            requests = requests if requests is not None else [exp.get_eunit_request() for exp in self.explainers]
-            distribution = self._distribute_eunits_by_request(
-                requests
-            )  # TODO: add tag_filters to by_request method as well
+            distribution = self._distribute_eunits_by_request()  # TODO: add tag_filters to by_request method as well
         else:
             raise ValueError(f"Unknown distribution method: {dist_method}")  # nocoverage
+
+        # create eunits and assign to explainers
+        self._create_eunits()
         logger.debug("EUnit distribution among explainers: %s", distribution)
         start = 0
         for idx, exp in enumerate(self.explainers):
