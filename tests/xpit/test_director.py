@@ -1,6 +1,6 @@
 """tests for xpit module."""
 
-from typing import Callable
+from typing import Callable, Optional
 
 import clingo
 import pytest
@@ -158,6 +158,30 @@ def test_distribute_eunits_by_request(
         expected_distribution
     ), "Distribution list length should match number of explainers."
     assert expected_distribution == distribution, "Distribution should match expected distribution."
+
+
+@pytest.mark.parametrize(
+    "prog_str, max_eunits, expected_max_eunits",
+    [
+        ('a :- not _explain(r1, msg("",())). :- a.', 2, 2),
+        ('a :- not _explain(r1, msg("",())). :- a.', None, 1),
+        ('a(X) :- X=1..3, not _explain(r1(X), msg("",(X))). :- a(X).', None, 3),
+    ],
+)
+def test_setup_before_solving_max_eunits(
+    director_factory: Callable[[Optional[int]], ExplanationDirector],
+    prog_str: str,
+    max_eunits: Optional[int],
+    expected_max_eunits: int,
+) -> None:
+    """tests that the maximum number of eunits is correct set before solving."""
+    director = director_factory(max_eunits)
+    explainer = ProgramExplainer(lp_strings=[prog_str])
+    director.register_explainer(explainer)
+    director.setup_before_grounding()
+    director.control.ground([("base", [])])
+    director.setup_before_solving()
+    assert director.maximum_number_of_eunits == expected_max_eunits, "Maximum number of eunits should be set correctly."
 
 
 @pytest.mark.parametrize(

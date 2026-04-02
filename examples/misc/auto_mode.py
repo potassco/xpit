@@ -6,47 +6,40 @@ import sys
 import clingo
 
 from xpit.director import ExplanationDirector
-from xpit.director.director import DistributionMethod
+from xpit.director.director import ExplorerMethod
 from xpit.explainer import ProgramExplainer
 from xpit.utils.logging import configure_logging
 
 configure_logging(sys.stderr, logging.DEBUG, sys.stderr.isatty())
 
-
 ctl = clingo.Control()
 
 PROGRAM1 = """
-a(X) :- X=1..10, not _explain(r1, msg("",(X))).
+a(X) :- b(X), X=1..3, not _explain(r1(X), msg("",(X))).
+a(X) :- not c(X), X=1..3, not _explain(r2(X), msg("",(X))).
+a(X) :- c(X): b(X); X=1..3, not _explain(r3(X), msg("",(X))).
 :- a(X).
-
 """
 
 PROGRAM2 = """
-b(X) :- X=1..5, not _explain(r2, msg("",(X))).
-:- b(X).
+b(X) :- X=1..2, not _explain(r4(X), msg("",(X))).
+c(X) :- X=2..3, not _explain(r5(X), msg("",(X))).
 """
 
-expdir = ExplanationDirector(ctl, 6)
+expdir = ExplanationDirector(ctl)
 pe_enc_1 = ProgramExplainer(lp_strings=[PROGRAM1])
 pe_enc_2 = ProgramExplainer(lp_strings=[PROGRAM2])
 
 expdir.register_explainer(pe_enc_1)
 expdir.register_explainer(pe_enc_2)
 
-# pe_enc_1.add_tag_filter(tagfilter(...))
-# explainer:
-#   - tag_filter(r1,r2)
-
-expdir.setup_before_grounding()  # this is supposed to clean the filter;
+expdir.setup_before_grounding()
 
 ctl.ground([("base", [])])
-# pe_enc_1.add_tag_filter(tagfilter(...))
 
-# explainer:
-#   - tag_filter = None
-expdir.setup_before_solving(dist_method=DistributionMethod.BY_REQUEST)
+expdir.setup_before_solving()
 
-for core in expdir.compute_minimal_core_eunits():
+for core in expdir.compute_minimal_core_eunits(ExplorerMethod.ASP):
     print("\n")
     print("Minimal core eunits:", core)
     print("Explanation atoms:")

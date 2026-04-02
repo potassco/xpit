@@ -1,7 +1,7 @@
 """Director module managing explainers and eunit budget allocation."""
 
 from enum import Enum
-from typing import Generator, List
+from typing import Generator, List, Optional
 
 import clingo
 from clingexplaid.mus import CoreComputer
@@ -29,18 +29,19 @@ class ExplanationDirector:
     def __init__(
         self,
         control: clingo.Control,
-        maximum_number_of_eunits: int,
+        maximum_number_of_eunits: Optional[int] = None,
     ) -> None:
         self.control = control
-        if maximum_number_of_eunits < 1:
+        if maximum_number_of_eunits is not None and maximum_number_of_eunits < 1:
             raise ValueError("Maximum number of eunits must be at least 1.")
-        self.maximum_number_of_eunits = maximum_number_of_eunits
+        self.eunit_auto = maximum_number_of_eunits is None
+        self.maximum_number_of_eunits = maximum_number_of_eunits or 0
         self.explainers: List[Explainer] = []
         self.eunits: List[EUnit] = []
 
     def register_explainer(self, explainer: Explainer) -> None:
         """registers an explainer module with the director"""
-        if len(self.explainers) == self.maximum_number_of_eunits:
+        if not self.eunit_auto and len(self.explainers) == self.maximum_number_of_eunits:
             raise ValueError("Number of registered explainers exceeds maximum number of eunits.")
         self.explainers.append(explainer)
         explainer.set_control(self.control)
@@ -96,18 +97,30 @@ class ExplanationDirector:
         logger.debug("Scaled EUnit distribution: %s", scaled)
         return scaled
 
-    def setup_before_solving(self, dist_method: DistributionMethod = DistributionMethod.EQUAL) -> None:
+    def setup_before_solving(self, dist_method: Optional[DistributionMethod] = None) -> None:
         """sets up the director and assigns eunit budgets to explainers before solving
         Args:
             dist_method (DistributionMethod): Method for distributing eunits among explainers.
         """
-        self._create_eunits()
-        if dist_method == DistributionMethod.EQUAL:
+        if self.eunit_auto:
+            if dist_method is not None:  # nocoverage
+                logger.warning("EUnit auto mode is enabled, but a distribution method is given. Ignoring given method.")
+            distribution = [exp.get_eunit_request() for exp in self.explainers]
+            total_requested = sum(distribution)
+            logger.debug(
+                "%s EUnits requested from explainers; set maximum_number_of_eunits accordingly", total_requested
+            )
+            self.maximum_number_of_eunits = total_requested
+
+        elif dist_method is None or dist_method == DistributionMethod.EQUAL:  # default case
             distribution = self._distribute_eunits_equally()
         elif dist_method == DistributionMethod.BY_REQUEST:  # nocoverage
             distribution = self._distribute_eunits_by_request()  # TODO: add tag_filters to by_request method as well
         else:
             raise ValueError(f"Unknown distribution method: {dist_method}")  # nocoverage
+
+        # create eunits and assign to explainers
+        self._create_eunits()
         logger.debug("EUnit distribution among explainers: %s", distribution)
         start = 0
         for idx, exp in enumerate(self.explainers):
