@@ -97,11 +97,13 @@ class Argument:
 
     def __repr__(self) -> str:
         if isinstance(self.value, list):
-            return f"({', '.join(repr(arg) for arg in self.value)})"
+            return f"({','.join(repr(arg) for arg in self.value)})"
         if isinstance(self.value, WildCardArgument):
             return "*"
         if callable(self.value):
             return f"<callable {self.value}>"
+        if isinstance(self.value, tuple):
+            return f"{self.value[0]}({','.join(repr(arg) for arg in self.value[1])})"
         return f"{self.value}"
 
     def unpack(self) -> Any:
@@ -124,7 +126,7 @@ class Argument:
             if wrapped_value.type == clingo.symbol.SymbolType.Number:
                 value = wrapped_value.number
             elif wrapped_value.type == clingo.symbol.SymbolType.String:
-                value = wrapped_value.string
+                value = f'"{wrapped_value.string}"'
             elif wrapped_value.type == clingo.symbol.SymbolType.Function:
                 value = wrapped_value.name
                 assert isinstance(value, str)
@@ -146,7 +148,7 @@ class Argument:
         if symbol.type == clingo.SymbolType.Number:
             return Argument(symbol.number)
         if symbol.type == clingo.SymbolType.String:
-            return Argument(symbol.string)
+            return Argument(f'"{symbol.string}"')
         if symbol.type == clingo.SymbolType.Function:
             if not symbol.arguments and symbol.name:
                 return Argument(symbol.name)
@@ -267,7 +269,7 @@ class PortionId:
             return f"{self._name}/{self._arity}"
         if callable(self._arguments):
             return f"{self._name}({self._arguments})"
-        return f"{self._name}({', '.join(repr(arg) for arg in self._arguments)})"
+        return f"{self._name}({','.join(repr(arg) for arg in self._arguments)})"
 
     @classmethod
     def from_ast(cls, arg: clingo.ast.AST, sig_only: bool = True) -> "PortionId":
