@@ -183,6 +183,7 @@ def test_portion_id_allows_errors(
     "tag_id, expected",
     [
         [PortionId("r1", 3, [Argument(4), Argument("string"), Argument(WildCardArgument("*"))]), "r1(4,string,*)"],
+        [PortionId("r1", 1, [Argument(("f", [Argument(3)]))]), "r1(f(3))"],
         [
             PortionId("r1", 1, [[Argument(4), Argument("string"), Argument(WildCardArgument("*"))]]),
             "r1((4,string,*))",
