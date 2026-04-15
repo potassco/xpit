@@ -46,7 +46,7 @@ ctl.ground([("base", [])])
 #   - tag_filter = None
 expdir.setup_before_solving(dist_method=DistributionMethod.BY_REQUEST)
 
-for core in expdir.compute_minimal_core_eunits():
+for core in expdir.compute_all_minimal_core_eunits():
     print("\n")
     print("Minimal core eunits:", core)
     print("Explanation atoms:")

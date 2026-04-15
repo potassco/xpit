@@ -1,7 +1,7 @@
 """Director module managing explainers and eunit budget allocation."""
 
 from enum import Enum
-from typing import Generator, List, Optional
+from typing import Generator, List, Optional, Sequence
 
 import clingo
 from clingexplaid.mus import CoreComputer
@@ -127,7 +127,25 @@ class ExplanationDirector:
             exp.assign_eunit_budget(self.eunits[start : start + distribution[idx]])
             start += distribution[idx]
 
-    def compute_minimal_core_eunits(
+    def compute_one_minimal_core_eunits(self) -> List[EUnit] | None:
+        """computes a singe minimal core eunits via shrinking the core got from clingo"""
+        mus: List[EUnit] | None = None
+
+        def shrink_core(core: Sequence[int]) -> None:
+            nonlocal mus
+            if core == []:
+                mus = []
+            else:
+                minimal_assumptions = cc.shrink(core)
+                mus = [self._find_eunit_for_assumption_literal(a.literal) for a in minimal_assumptions.assumptions]
+
+        cc = CoreComputer(self.control, [eu.assumption_lit for eu in self.eunits])
+        self.control.solve(assumptions=[eu.assumption_lit for eu in self.eunits], on_core=shrink_core)
+        if mus is None:
+            logger.warning("No core is computed, check whether the input program is inconsistent or not.")  # nocoverage
+        return mus
+
+    def compute_all_minimal_core_eunits(
         self, core_explorer: ExplorerMethod = ExplorerMethod.POWERSET
     ) -> Generator[List[EUnit]]:
         """computes minimal core eunits using clingexplaid's CoreComputer"""

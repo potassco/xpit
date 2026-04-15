@@ -27,7 +27,7 @@ ctl.ground([("base", [])])
 
 expdir.setup_before_solving()
 
-for core in expdir.compute_minimal_core_eunits():
+for core in expdir.compute_all_minimal_core_eunits():
     print("Explanation for lp_files:", lp_files)
     print("Number of eunits:", eunit_num)
     print("Minimal core eunits:", core)

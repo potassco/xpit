@@ -217,9 +217,53 @@ def test_director(  # pylint: disable=too-many-positional-arguments
     director.control.ground([("base", [])])
     director.setup_before_solving()
 
-    cores = list(director.compute_minimal_core_eunits())
+    cores = list(director.compute_all_minimal_core_eunits())
     assert len(cores) == num_cores
     for core in cores:
         exp_portions = director.compute_explanation(core)
         # TODO: rewrite this with tagidfilter
         assert any(id_in_core.allows(ep.id_) for id_in_core in ids_in_cores for ep in exp_portions)
+
+
+@pytest.mark.parametrize(
+    "num_eunit, file, prog_str, num_cores, is_sat",
+    [
+        (3, "not_a_of_x.lp", "", 3, False),
+        (4, "not_a_of_x.lp", "", 3, False),
+        (2, "ex1.lp", "", 1, False),
+        (1, "ex1.lp", "", 1, False),
+        (2, "ex2.lp", "", 1, False),
+        (1, "ex2.lp", "", 0, False),  # this might be a bug in cling-explaid; does not work with ASP-explorer.
+        (3, "sat1.lp", "", 0, True),
+        (1, "", 'a :- not _explain(r1, msg("",())). :-a. ', 1, False),
+    ],
+)
+def test_director_compute_one_mus(  # pylint: disable=too-many-positional-arguments
+    director_factory: Callable[[int], ExplanationDirector],
+    num_eunit: int,
+    file: str,
+    prog_str: str,
+    num_cores: int,
+    is_sat: bool,
+) -> None:
+    """test ExplanationDirector usage for computing a single minimal unsatisfiable eunits."""
+
+    director = director_factory(num_eunit)
+    explainer = ProgramExplainer(
+        lp_files=[str(TEST_DIR.joinpath(f"res/{file}"))] if file else [], lp_strings=[prog_str] if prog_str else []
+    )
+    director.register_explainer(explainer)
+    director.setup_before_grounding()
+    director.control.ground([("base", [])])
+    director.setup_before_solving()
+
+    cores = list(director.compute_all_minimal_core_eunits())
+    single_core = director.compute_one_minimal_core_eunits()
+    if is_sat:
+        assert single_core is None
+    elif num_cores == 0:
+        assert single_core == []
+    elif num_cores == 1:
+        assert [single_core] == cores
+    else:  # there are more than 1 cores
+        assert single_core in cores
