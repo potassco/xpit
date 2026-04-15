@@ -16,7 +16,7 @@ from xpit.definitions.define import Argument, PortionId, PortionIdFilter, WildCa
         ("tag(id(f(1))).", Argument(("id", [Argument(("f", [Argument(1)]))]))),
         ("tag(id).", Argument("id")),
         ("tag(1).", Argument(1)),
-        ('tag("id").', Argument("id")),
+        ('tag("id").', Argument('"id"')),
         ("tag(id()).", Argument(("id", []))),
         ("tag(id).", Argument("id")),
         ("tag(id((1,2,3))).", Argument(("id", [Argument([Argument(1), Argument(2), Argument(3)])]))),
@@ -35,12 +35,12 @@ def test_argument_from_ast(ast: str, expected: Argument) -> None:
     "symbol, expected",
     [
         (clingo.Number(1), Argument(1)),
-        (clingo.String("id"), Argument("id")),
+        (clingo.String("id"), Argument('"id"')),
         (clingo.Function("id", [], True), Argument("id")),
         (clingo.Function("id", [clingo.Number(1)], True), Argument(("id", [Argument(1)]))),
         (
             clingo.Function("id", [clingo.String("a"), clingo.Number(2)], True),
-            Argument(("id", [Argument("a"), Argument(2)])),
+            Argument(("id", [Argument('"a"'), Argument(2)])),
         ),
         (
             clingo.Function("id", [clingo.Function("f", [clingo.Number(1)], True)], True),
@@ -50,7 +50,7 @@ def test_argument_from_ast(ast: str, expected: Argument) -> None:
             clingo.Function(
                 "id", [clingo.Function("f", [clingo.Number(1), clingo.String("b")], True), clingo.Number(2)], True
             ),
-            Argument(("id", [Argument(("f", [Argument(1), Argument("b")])), Argument(2)])),
+            Argument(("id", [Argument(("f", [Argument(1), Argument('"b"')])), Argument(2)])),
         ),
         (clingo.Function("", [clingo.Number(1), clingo.Number(2)], True), Argument([Argument(1), Argument(2)])),
     ],
@@ -182,14 +182,15 @@ def test_portion_id_allows_errors(
 @pytest.mark.parametrize(
     "tag_id, expected",
     [
-        [PortionId("r1", 3, [Argument(4), Argument("string"), Argument(WildCardArgument("*"))]), "r1(4, string, *)"],
+        [PortionId("r1", 3, [Argument(4), Argument("string"), Argument(WildCardArgument("*"))]), "r1(4,string,*)"],
         [
             PortionId("r1", 1, [[Argument(4), Argument("string"), Argument(WildCardArgument("*"))]]),
-            "r1((4, string, *))",
+            "r1((4,string,*))",
+
         ],
         [PortionId("r1"), "r1/*"],
         [PortionId("r1", 0), "r1"],
-        [PortionId("r1", 0), "r1"],
+        [PortionId("r1", 1, [Argument('"Hello"')]), "r1(\"Hello\""],
         [PortionId("r1", 2), "r1/2"],
         [PortionId("r1", 2, lambda x: True), "r1(<function <lambda> at"],
     ],
@@ -222,7 +223,7 @@ def test_repr_argument_lambda_in_argument() -> None:
                 arity=5,
                 arguments=[
                     Argument(1),
-                    Argument("asdf"),
+                    Argument('"asdf"'),
                     Argument("asd"),
                     Argument(WildCardArgument("*")),
                     Argument([Argument(1), Argument("zwei")]),
@@ -242,9 +243,9 @@ def test_tag_id_init_from_ast(atom_string: str, sig_only: bool, expected: Portio
 @pytest.mark.parametrize(
     "clingo_symbol, expected",
     [
-        (clingo.Function("r1", [clingo.String("b")], True), PortionId("r1", 1, ["b"])),
+        (clingo.Function("r1", [clingo.String("b")], True), PortionId("r1", 1, [Argument('"b"')])),
         (clingo.Function("r1", [clingo.Number(1)], True), PortionId("r1", 1, [1])),
-        (clingo.Function("r1", [clingo.String("b"), clingo.Number(1)], True), PortionId("r1", 2, ["b", 1])),
+        (clingo.Function("r1", [clingo.String("b"), clingo.Number(1)], True), PortionId("r1", 2, [Argument('"b"'), Argument(1)])),
         (clingo.String("b"), PortionId("b", 0)),
         (
             clingo.Function("r1", [clingo.Function("", [clingo.Number(1), clingo.Number(2)], True)], True),
