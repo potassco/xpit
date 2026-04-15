@@ -73,7 +73,7 @@ def test_setup_before_grounding(
     explainer = ProgramExplainer(lp_files=[str(file_path)])
     director = director_factory(5)
     director.register_explainer(explainer)
-    with caplog.at_level("WARNING"):
+    with caplog.at_level("DEBUG"):
         director.setup_before_grounding()
     # pylint: disable=protected-access
     assert len(explainer._exp_portion_ids) == len(expected_ids), "There should be 1 explanation portion identified."
