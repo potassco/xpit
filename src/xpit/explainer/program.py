@@ -106,7 +106,7 @@ class ExplanationPortionTransformer:
 
                 tag_id = PortionId.from_ast(lit.atom.symbol.arguments[0])
                 if self.exp_portion_ids.allows(tag_id):
-                    logger.warning("Duplicate explainable portion id found: %s", str(lit.atom.symbol.arguments[0]))
+                    logger.debug("Duplicate explainable portion id found: %s", str(lit.atom.symbol.arguments[0]))
                 else:
                     self.exp_portion_ids.append(tag_id)
 
