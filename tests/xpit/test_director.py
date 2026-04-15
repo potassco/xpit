@@ -217,7 +217,7 @@ def test_director(  # pylint: disable=too-many-positional-arguments
     director.control.ground([("base", [])])
     director.setup_before_solving()
 
-    cores = list(director.compute_minimal_core_eunits())
+    cores = list(director.compute_all_minimal_core_eunits())
     assert len(cores) == num_cores
     for core in cores:
         exp_portions = director.compute_explanation(core)

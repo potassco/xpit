@@ -45,7 +45,7 @@ pe_enc_1.add_tag_filter(
 
 expdir.setup_before_solving()
 
-for core in expdir.compute_minimal_core_eunits():
+for core in expdir.compute_all_minimal_core_eunits():
     print("\n")
     print("Minimal core eunits:", core)
     print("Explanation atoms:")

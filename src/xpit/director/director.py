@@ -127,7 +127,7 @@ class ExplanationDirector:
             exp.assign_eunit_budget(self.eunits[start : start + distribution[idx]])
             start += distribution[idx]
 
-    def compute_minimal_core_eunits(
+    def compute_all_minimal_core_eunits(
         self, core_explorer: ExplorerMethod = ExplorerMethod.POWERSET
     ) -> Generator[List[EUnit]]:
         """computes minimal core eunits using clingexplaid's CoreComputer"""

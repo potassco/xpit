@@ -39,7 +39,7 @@ ctl.ground([("base", [])])
 
 expdir.setup_before_solving()
 
-for core in expdir.compute_minimal_core_eunits(ExplorerMethod.ASP):
+for core in expdir.compute_all_minimal_core_eunits(ExplorerMethod.ASP):
     print("\n")
     print("Minimal core eunits:", core)
     print("Explanation atoms:")
