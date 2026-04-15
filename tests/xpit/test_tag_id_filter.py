@@ -186,11 +186,10 @@ def test_portion_id_allows_errors(
         [
             PortionId("r1", 1, [[Argument(4), Argument("string"), Argument(WildCardArgument("*"))]]),
             "r1((4,string,*))",
-
         ],
         [PortionId("r1"), "r1/*"],
         [PortionId("r1", 0), "r1"],
-        [PortionId("r1", 1, [Argument('"Hello"')]), "r1(\"Hello\""],
+        [PortionId("r1", 1, [Argument('"Hello"')]), 'r1("Hello")'],
         [PortionId("r1", 2), "r1/2"],
         [PortionId("r1", 2, lambda x: True), "r1(<function <lambda> at"],
     ],
@@ -245,7 +244,10 @@ def test_tag_id_init_from_ast(atom_string: str, sig_only: bool, expected: Portio
     [
         (clingo.Function("r1", [clingo.String("b")], True), PortionId("r1", 1, [Argument('"b"')])),
         (clingo.Function("r1", [clingo.Number(1)], True), PortionId("r1", 1, [1])),
-        (clingo.Function("r1", [clingo.String("b"), clingo.Number(1)], True), PortionId("r1", 2, [Argument('"b"'), Argument(1)])),
+        (
+            clingo.Function("r1", [clingo.String("b"), clingo.Number(1)], True),
+            PortionId("r1", 2, [Argument('"b"'), Argument(1)]),
+        ),
         (clingo.String("b"), PortionId("b", 0)),
         (
             clingo.Function("r1", [clingo.Function("", [clingo.Number(1), clingo.Number(2)], True)], True),
