@@ -261,9 +261,9 @@ def test_director_compute_one_mus(  # pylint: disable=too-many-positional-argume
     single_core = director.compute_one_minimal_core_eunits()
     if is_sat:
         assert single_core is None
-    elif num_cores==0:
-        assert single_core==[]
-    elif num_cores==1:
-        assert [single_core]==cores
+    elif num_cores == 0:
+        assert single_core == []
+    elif num_cores == 1:
+        assert [single_core] == cores
     else:  # there are more than 1 cores
         assert single_core in cores

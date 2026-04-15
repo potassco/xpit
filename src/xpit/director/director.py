@@ -128,19 +128,20 @@ class ExplanationDirector:
             start += distribution[idx]
 
     def compute_one_minimal_core_eunits(self) -> List[EUnit] | None:
+        """computes a singe minimal core eunits via shrinking the core got from clingo"""
         mus: List[EUnit] | None = None
 
-        def shrink_core(director: ExplanationDirector, core_computer: CoreComputer, core: Sequence[int]) -> None:
+        def shrink_core(core: Sequence[int]) -> None:
             nonlocal mus
-            if core==[]:
-                mus = core
+            if core == []:
+                mus = []
             else:
-                minimal_assumptions = core_computer.shrink(core)
-                mus = [director._find_eunit_for_assumption_literal(a.literal) for a in minimal_assumptions.assumptions]
+                minimal_assumptions = cc.shrink(core)
+                mus = [self._find_eunit_for_assumption_literal(a.literal) for a in minimal_assumptions.assumptions]
 
         cc = CoreComputer(self.control, [eu.assumption_lit for eu in self.eunits])
         self.control.solve(
-            assumptions=[eu.assumption_lit for eu in self.eunits], on_core=lambda c: shrink_core(self, cc, c)
+            assumptions=[eu.assumption_lit for eu in self.eunits], on_core=shrink_core
         )
         if mus is None:
             logger.warning("No core is computed, check whether the input program is inconsistent or not.")  # nocoverage
