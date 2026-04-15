@@ -140,9 +140,7 @@ class ExplanationDirector:
                 mus = [self._find_eunit_for_assumption_literal(a.literal) for a in minimal_assumptions.assumptions]
 
         cc = CoreComputer(self.control, [eu.assumption_lit for eu in self.eunits])
-        self.control.solve(
-            assumptions=[eu.assumption_lit for eu in self.eunits], on_core=shrink_core
-        )
+        self.control.solve(assumptions=[eu.assumption_lit for eu in self.eunits], on_core=shrink_core)
         if mus is None:
             logger.warning("No core is computed, check whether the input program is inconsistent or not.")  # nocoverage
         return mus
