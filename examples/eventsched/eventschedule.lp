@@ -23,7 +23,7 @@
 must_assign(Session,D''):- assign(Session,(D,P)), assign(Session,(D',P')), D<D', conseq(D,D''), D''<D'.
 :- must_assign(Session,D), not assign(Session,(D,_)),
    % not _explain(dont_break,msg("A session cannot be scheuled without a break day",())).
-   %% not _explain(dont_break,msg("Session {} cannot be scheuled without a break day",(Session))).
+   %% not _explain(dont_break,msg("Session {} cannot be scheuled without a break day",(Session,))).
    not _explain(dont_break,msg("Session {} has a gap on {}",(Session,D))).
 
 % Don't put more than one session to the same day

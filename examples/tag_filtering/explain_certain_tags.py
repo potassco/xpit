@@ -14,8 +14,8 @@ configure_logging(sys.stderr, logging.DEBUG, sys.stderr.isatty())
 
 
 PROGRAM = """
-a(X) :- X=1..3, not _explain(fact(a,X), msg("",(X))).
-b(X) :- X=1..3, not _explain(fact(b,X), msg("",(X))).
+a(X) :- X=1..3, not _explain(fact(a,X), msg("",(X,))).
+b(X) :- X=1..3, not _explain(fact(b,X), msg("",(X,))).
 
 :- a(X), b(X), not _explain(constraint(X), msg("",())).
 
