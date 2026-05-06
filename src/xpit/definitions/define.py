@@ -8,6 +8,7 @@ from typing import Any, Callable, Optional, Protocol, Self, Sequence, cast, over
 
 import clingo
 import clingo.ast
+from clingo.symbol import SymbolType
 from clingo.symbolic_atoms import SymbolicAtom
 
 from xpit.utils.logging import get_logger
@@ -44,6 +45,14 @@ class ExplanationPortion:
     def get_message(self) -> str:  # nocoverage
         """returns the message formatted using load"""
         try:
+            if not (
+                self.exp_atom.symbol.arguments[1].arguments[1].type == SymbolType.Function
+                and self.exp_atom.symbol.arguments[1].arguments[1].name == ""
+            ):
+                # not a tuple in the msg load
+                raise ValueError(
+                    f"The message load is not a tuple: {str(self.exp_atom.symbol)}"
+                )
             msg_data = tuple(str(d) for d in self.exp_atom.symbol.arguments[1].arguments[1].arguments)
             return str(self.exp_atom.symbol.arguments[1].arguments[0]).format(*msg_data)
         except Exception as err:

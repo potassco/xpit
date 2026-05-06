@@ -16,13 +16,13 @@ configure_logging(sys.stderr, logging.DEBUG, sys.stderr.isatty())
 ctl = clingo.Control()
 
 PROGRAM1 = """
-a(X) :- X=1..10, not _explain(r1, msg("",(X))).
+a(X) :- X=1..10, not _explain(r1, msg("",(X,))).
 :- a(X).
 
 """
 
 PROGRAM2 = """
-b(X) :- X=1..5, not _explain(r2, msg("",(X))).
+b(X) :- X=1..5, not _explain(r2, msg("",(X,))).
 :- b(X).
 """
 
