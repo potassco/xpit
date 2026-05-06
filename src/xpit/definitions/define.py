@@ -50,9 +50,7 @@ class ExplanationPortion:
                 and self.exp_atom.symbol.arguments[1].arguments[1].name == ""
             ):
                 # not a tuple in the msg load
-                raise ValueError(
-                    f"The message load is not a tuple: {str(self.exp_atom.symbol)}"
-                )
+                raise ValueError(f"The message load is not a tuple: {str(self.exp_atom.symbol)}")
             msg_data = tuple(str(d) for d in self.exp_atom.symbol.arguments[1].arguments[1].arguments)
             return str(self.exp_atom.symbol.arguments[1].arguments[0]).format(*msg_data)
         except Exception as err:
