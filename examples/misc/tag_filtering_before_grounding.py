@@ -17,10 +17,8 @@ ctl = clingo.Control()
 expdir = ExplanationDirector(ctl, 4)
 pe_encoding = ProgramExplainer(
     lp_strings=[LP_STRING],
-    tag_filter=PortionIdFilter(
-        ["constraint", "r1/1"]
-        ) # only explain rules tagged with constraint or r1, but not r2
-    ) 
+    tag_filter=PortionIdFilter(["constraint", "r1/1"]),  # only explain rules tagged with constraint or r1, but not r2
+)
 
 expdir.register_explainer(pe_encoding)
 
