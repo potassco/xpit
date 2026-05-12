@@ -194,7 +194,8 @@ class ProgramExplainer(Explainer):
             1
             for a in self.control.symbolic_atoms.by_signature("_exp", 2)
             if self._exp_portion_ids.allows(PortionId.from_clingo_symbol(a.symbol.arguments[0]))
-        )
+            and (self.tag_filter is None or self.tag_filter.allows(PortionId.from_clingo_symbol(a.symbol.arguments[0])))
+        ) + int(self.bind_filtered_out_ids)
 
     def assign_eunit_budget(self, eunits: List[EUnit]) -> None:
         """assigns eunit budget to explainable portions in the program"""
