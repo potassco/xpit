@@ -48,5 +48,3 @@ initial(9,9,9).
 
 % explanation query
 :- not sudoku(2,5,2), not _explain(query, msg("2 cannot be placed at (2,5)",())).
-
-

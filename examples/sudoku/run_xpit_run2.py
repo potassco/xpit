@@ -1,17 +1,18 @@
-import sys
+# pylint: skip-file
 import logging
+import sys
 
 import click
 import clingo
 
-from xpit.director import ExplanationDirector
-from xpit.director import ExplorerMethod 
-from xpit.explainer import ProgramExplainer
 from xpit.definitions.define import PortionId, PortionIdFilter
+from xpit.director import ExplanationDirector, ExplorerMethod
+from xpit.explainer import ProgramExplainer
 from xpit.utils.logging import configure_logging, get_logger
 
 configure_logging(sys.stdout, logging.DEBUG, True)
 logger = get_logger(__name__)
+
 
 @click.command()
 @click.option(
@@ -65,33 +66,32 @@ def run_explanation(max_eunit_num, fact_sig, number_of_explanations, lp_program_
 
     # create id filters
 
-    same_num_in_row_id= PortionId(
-            name = "same_num_in_row",
-            arity = 4,
-            # arguments = lambda y,v,x,xp: y in [4,5],
-            arguments = lambda y,v,x,xp: v == 2,
+    same_num_in_row_id = PortionId(
+        name="same_num_in_row",
+        arity=4,
+        # arguments = lambda y,v,x,xp: y in [4,5],
+        arguments=lambda y, v, x, xp: v == 2,
     )
 
-    same_num_in_column_id= PortionId(
-            name = "same_num_in_column",
-            arity = 4,
-            # arguments = lambda x,v,y,yp: x in [5,6],
-            arguments = lambda x,v,y,yp: v == 2,
+    same_num_in_column_id = PortionId(
+        name="same_num_in_column",
+        arity=4,
+        # arguments = lambda x,v,y,yp: x in [5,6],
+        arguments=lambda x, v, y, yp: v == 2,
     )
 
-    same_num_in_subgrid_id= PortionId(
-            name = "same_num_in_subgrid",
-            arity = 6,
-            # arguments = lambda s,v,x,y,xp,yp: s in [4],
-            arguments = lambda s,v,x,y,xp,yp: v == 2,
+    same_num_in_subgrid_id = PortionId(
+        name="same_num_in_subgrid",
+        arity=6,
+        # arguments = lambda s,v,x,y,xp,yp: s in [4],
+        arguments=lambda s, v, x, y, xp, yp: v == 2,
     )
 
-    query_id = PortionId(
-            name = "query",
-            arity = 0
-    )
+    query_id = PortionId(name="query", arity=0)
 
-    pe_encoding.add_tag_filter(tag_filter=PortionIdFilter([same_num_in_row_id, same_num_in_column_id, same_num_in_subgrid_id, query_id]))
+    pe_encoding.add_tag_filter(
+        tag_filter=PortionIdFilter([same_num_in_row_id, same_num_in_column_id, same_num_in_subgrid_id, query_id])
+    )
 
     expdir.setup_before_solving()
 

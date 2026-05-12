@@ -1,17 +1,17 @@
-import sys
+# pylint: skip-file
 import logging
+import sys
 
 import click
 import clingo
 
-from xpit.director import ExplanationDirector
-from xpit.director import ExplorerMethod 
+from xpit.director import ExplanationDirector, ExplorerMethod
 from xpit.explainer import ProgramExplainer
-from xpit.definitions.define import PortionId, PortionIdFilter
 from xpit.utils.logging import configure_logging, get_logger
 
 configure_logging(sys.stdout, logging.DEBUG, True)
 logger = get_logger(__name__)
+
 
 @click.command()
 @click.option(
@@ -63,9 +63,7 @@ def run_explanation(max_eunit_num, fact_sig, number_of_explanations, lp_program_
     expdir.setup_before_grounding()
     ctl.ground([("base", [])])
 
-
     expdir.setup_before_solving()
-
 
     idx = 0
     if number_of_explanations == 1:

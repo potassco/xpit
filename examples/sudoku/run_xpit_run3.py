@@ -1,17 +1,18 @@
-import sys
+# pylint: skip-file
 import logging
+import sys
 
 import click
 import clingo
 
-from xpit.director import ExplanationDirector
-from xpit.director import ExplorerMethod 
-from xpit.explainer import ProgramExplainer
 from xpit.definitions.define import PortionId, PortionIdFilter
+from xpit.director import ExplanationDirector, ExplorerMethod
+from xpit.explainer import ProgramExplainer
 from xpit.utils.logging import configure_logging, get_logger
 
 configure_logging(sys.stdout, logging.DEBUG, True)
 logger = get_logger(__name__)
+
 
 @click.command()
 @click.option(
@@ -68,16 +69,18 @@ def run_explanation(max_eunit_num, fact_sig, number_of_explanations, lp_program_
 
     # create id filters
 
-    query_id = PortionId(
-            name = "query",
-            arity = 0
-    )
+    query_id = PortionId(name="query", arity=0)
 
     place_id = PortionId(
-            name = "place",
-            arity = 3,
-            arguments = lambda x,y,v: (x,y) in [(4,5), (6,6), (5,6),]
-            # arguments = lambda x,y,v: (x,y) in [(4,5),]
+        name="place",
+        arity=3,
+        arguments=lambda x, y, v: (x, y)
+        in [
+            (4, 5),
+            (6, 6),
+            (5, 6),
+        ],
+        # arguments = lambda x,y,v: (x,y) in [(4,5),]
     )
 
     reject_all = PortionId(name="reject", arity=0)
@@ -85,7 +88,13 @@ def run_explanation(max_eunit_num, fact_sig, number_of_explanations, lp_program_
     pe_encoding.add_tag_filter(PortionIdFilter([query_id]))
 
     emptycell_encoding.set_bind_filtered_out_ids(True)
-    emptycell_encoding.add_tag_filter(tag_filter=PortionIdFilter([place_id, ]))
+    emptycell_encoding.add_tag_filter(
+        tag_filter=PortionIdFilter(
+            [
+                place_id,
+            ]
+        )
+    )
 
     expdir.setup_before_solving()
 
