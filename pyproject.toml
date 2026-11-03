@@ -12,7 +12,7 @@ license = { file = "LICENSE" }
 dynamic = ["version"]
 readme = "README.md"
 dependencies = [
-    "clingexplaid>=1.4.0",
+    "clingexplaid==1.4.0",
     "clingo>=5.8,<6.0",
     "clorm>=1.6.1"
 ]
