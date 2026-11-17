@@ -1,6 +1,6 @@
 """test functionalities of ProgramExplainer in integration with Director"""
 
-from typing import Callable
+from typing import Callable, Optional
 
 import clingo
 import pytest
@@ -114,20 +114,41 @@ def test_assign_eunit_budget(
 
 
 @pytest.mark.parametrize(
-    "rule_str, exp_rule_str, is_marked_for_explanation",
+    "rule_str, exp_rule_str, tag_filter, is_marked_for_explanation, is_filtered_out",
     [
-        ("a :- b, not _explain(r1, msg()).", "a :- b, not _exp(r1, msg()). {_exp(r1, msg())} :- b.", True),
-        ("c :- d.", "c :- d.", False),
+        ("a :- b, not _explain(r1, msg()).", "a :- b, not _exp(r1, msg()). {_exp(r1, msg())} :- b.", None, True, False),
+        (
+            "a :- b, not _explain(r1, msg()).",
+            "a :- b, not _exp(r1, msg()). {_exp(r1, msg())} :- b.",
+            PortionIdFilter([PortionId("r1", 0)]),
+            True,
+            False,
+        ),
+        (
+            "a :- b, not _explain(r1, msg()).",
+            "a :- b, not _explain(r1, msg()).",
+            PortionIdFilter([PortionId("r2", 0)]),
+            True,
+            True,
+        ),
+        ("c :- d.", "c :- d.", None, False, False),
     ],
 )
-def test_transform_rule(
-    caplog: pytest.LogCaptureFixture, rule_str: str, exp_rule_str: str, is_marked_for_explanation: bool
+def test_transform_rule(  # pylint: disable=too-many-positional-arguments
+    caplog: pytest.LogCaptureFixture,
+    rule_str: str,
+    exp_rule_str: str,
+    tag_filter: Optional[PortionIdFilter],
+    is_marked_for_explanation: bool,
+    is_filtered_out: bool,
 ) -> None:
     """test _transform_rule of ExplanationPortionTransformer."""
     ast_nodes: list[clingo.ast.AST] = []
     parse_string(rule_str, ast_nodes.append)
     ast = ast_nodes[1]
-    transformer = ExplanationPortionTransformer(builder=MockBuilder(), fact_signatures=[])  # type: ignore
+    transformer = ExplanationPortionTransformer(
+        builder=MockBuilder(), fact_signatures=[], tag_filter=tag_filter  # type: ignore
+    )
     with caplog.at_level("DEBUG"):
         t_asts = list(transformer._transform_rule(ast))  # pylint: disable=protected-access
 
@@ -137,7 +158,10 @@ def test_transform_rule(
     assert all(t_ast in expected_ast_nodes for t_ast in t_asts), "Transformed ASTs should match expected ASTs."
     if is_marked_for_explanation:
         assert "marked for explanation" in caplog.text
-        assert "New rule added" in caplog.text
+        if not is_filtered_out:
+            assert "New rule added" in caplog.text
+        else:
+            assert "New rule added" not in caplog.text
     else:
         assert "marked for explanation" not in caplog.text
         assert "New rule added" not in caplog.text

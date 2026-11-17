@@ -307,7 +307,7 @@ class PortionId:
             return cls(symbol.string, 0)
         raise ValueError(f"Invalid symbol for TagId: {symbol}. Expected a function or string symbol.")  # nocoverage
 
-    def allows(self, other: Self) -> bool:
+    def allows(self, other: Self, by_sig_only: bool = False) -> bool:
         """Checks if this TagId allows another TagId based on name, arity, and arguments."""
         if not isinstance(other, PortionId):  # nocoverage
             return ValueError("other: %s must be a TagId", other)
@@ -317,7 +317,7 @@ class PortionId:
             return True
         if self._arity != other.arity:  # nocoverage
             return False
-        if self._arguments is None:
+        if self._arguments is None or by_sig_only:
             return True
         if not isinstance(other.arguments, Sequence):
             logger.error(
@@ -367,6 +367,6 @@ class PortionIdFilter:
         for tag in tags:
             self.append(tag)
 
-    def allows(self, tag: PortionId) -> bool:
+    def allows(self, tag: PortionId, by_sig_only: bool = False) -> bool:
         """Checks if the given tag is allowed by the filter."""
-        return any(tag_filter.allows(tag) for tag_filter in self.tags)
+        return any(tag_filter.allows(tag, by_sig_only=by_sig_only) for tag_filter in self.tags)

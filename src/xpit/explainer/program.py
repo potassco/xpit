@@ -41,8 +41,14 @@ class ExplanationPortionTransformer:
     and converts it to an explainable rule.
     """
 
-    def __init__(self, builder: ProgramBuilder, fact_signatures: list[tuple[str, int]]):
+    def __init__(
+        self,
+        builder: ProgramBuilder,
+        fact_signatures: list[tuple[str, int]],
+        tag_filter: Optional[PortionIdFilter] = None,
+    ):
         self.exp_portion_ids: PortionIdFilter = PortionIdFilter([])
+        self._tag_filter = tag_filter
         self._builder = builder
         self._fact_signatures = fact_signatures
 
@@ -105,6 +111,10 @@ class ExplanationPortionTransformer:
                 assert len(lit.atom.symbol.arguments) == 2, "_explain should have two arguments."
 
                 tag_id = PortionId.from_ast(lit.atom.symbol.arguments[0])
+                if self._tag_filter is not None and not self._tag_filter.allows(tag_id, by_sig_only=True):
+                    logger.debug("Portion id %s filtered out by tag filter.", tag_id)
+                    continue  # nocoverage
+
                 if self.exp_portion_ids.allows(tag_id):
                     logger.debug("Duplicate explainable portion id found: %s", str(lit.atom.symbol.arguments[0]))
                 else:
@@ -146,12 +156,14 @@ class ProgramExplainer(Explainer):
         lp_files: Optional[Sequence[Union[str, Path]]] = None,
         lp_strings: Optional[Sequence[str]] = None,
         fact_signatures: Optional[Sequence[tuple[str, int]]] = None,
+        tag_filter: Optional[PortionIdFilter] = None,
     ) -> None:
         """initializes the ProgramExplainer with given LP files."""
         super().__init__()
         self.lp_files = list(lp_files) if lp_files is not None else []
         self.lp_strings = list(lp_strings) if lp_strings is not None else []
         self.fact_signatures = list(fact_signatures) if fact_signatures is not None else []
+        self.tag_filter = tag_filter
         self._exp_portion_ids: PortionIdFilter = PortionIdFilter([])
         self._binding: defaultdict[EUnit, List[EPortion]] = defaultdict(list)
 
@@ -172,7 +184,9 @@ class ProgramExplainer(Explainer):
             raise ValueError("Unregistered explainer: control is not set.")
         ast_list: list[clingo.ast.AST] = []
         with ProgramBuilder(self.control) as bld:
-            t = ExplanationPortionTransformer(builder=bld, fact_signatures=self.fact_signatures)
+            t = ExplanationPortionTransformer(
+                builder=bld, fact_signatures=self.fact_signatures, tag_filter=self.tag_filter
+            )
             if self.lp_files:
                 parse_files([str(f) for f in self.lp_files], ast_list.append)
             for lp_string in self.lp_strings:
