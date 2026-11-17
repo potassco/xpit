@@ -6,7 +6,6 @@ import sys
 import clingo
 
 from xpit.director import ExplanationDirector
-from xpit.director.director import ExplorerMethod
 from xpit.explainer import ProgramExplainer
 from xpit.utils.logging import configure_logging
 
@@ -39,7 +38,7 @@ ctl.ground([("base", [])])
 
 expdir.setup_before_solving()
 
-for core in expdir.compute_all_minimal_core_eunits(ExplorerMethod.ASP):
+for core in expdir.compute_all_minimal_core_eunits():
     print("\n")
     print("Minimal core eunits:", core)
     print("Explanation atoms:")

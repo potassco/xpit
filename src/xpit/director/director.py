@@ -4,8 +4,7 @@ from enum import Enum
 from typing import Generator, List, Optional, Sequence
 
 import clingo
-from clingexplaid.mus import CoreComputer
-from clingexplaid.mus.explorers import Explorer, ExplorerAsp, ExplorerPowerset
+from clingexplaid.unsat import SubsetComputer
 from clingo.symbol import Function
 
 from xpit.definitions import ExplanationPortion as EPortion
@@ -15,8 +14,6 @@ from xpit.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
-
-ExplorerMethod = Enum("ExplorerMethod", {"ASP": "asp", "POWERSET": "powerset"})
 
 DistributionMethod = Enum("DistributionMethod", {"EQUAL": "equal", "BY_REQUEST": "by_request"})
 
@@ -136,28 +133,19 @@ class ExplanationDirector:
             if core == []:
                 mus = []
             else:
-                minimal_assumptions = cc.shrink(core)
+                minimal_assumptions = sc.mus(core)
                 mus = [self._find_eunit_for_assumption_literal(a.literal) for a in minimal_assumptions.assumptions]
 
-        cc = CoreComputer(self.control, [eu.assumption_lit for eu in self.eunits])
+        sc = SubsetComputer(self.control, [eu.assumption_lit for eu in self.eunits])
         self.control.solve(assumptions=[eu.assumption_lit for eu in self.eunits], on_core=shrink_core)
         if mus is None:
             logger.warning("No core is computed, check whether the input program is inconsistent or not.")  # nocoverage
         return mus
 
-    def compute_all_minimal_core_eunits(
-        self, core_explorer: ExplorerMethod = ExplorerMethod.POWERSET
-    ) -> Generator[List[EUnit]]:
+    def compute_all_minimal_core_eunits(self) -> Generator[List[EUnit]]:
         """computes minimal core eunits using clingexplaid's CoreComputer"""
-        core_comp_explorer: type[Explorer]
-        if core_explorer == ExplorerMethod.ASP:  # nocoverage
-            core_comp_explorer = ExplorerAsp
-        elif core_explorer == ExplorerMethod.POWERSET:
-            core_comp_explorer = ExplorerPowerset
-        else:
-            raise ValueError(f"Unknown core explorer: {core_explorer}")  # nocoverage
-        cc = CoreComputer(self.control, [eu.assumption_lit for eu in self.eunits], core_comp_explorer)
-        mus_generator = cc.get_multiple_minimal()
+        sc = SubsetComputer(self.control, [eu.assumption_lit for eu in self.eunits])
+        mus_generator = sc.multiple()
         for mus in mus_generator:
             minimal_core_eunits = [self._find_eunit_for_assumption_literal(a.literal) for a in mus.assumptions]
             yield minimal_core_eunits
