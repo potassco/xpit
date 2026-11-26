@@ -13,13 +13,15 @@ from xpit.utils.logging import configure_logging, get_logger
 logger = get_logger(__name__)
 
 
-@click.command(help=(
+@click.command(
+    help=(
         """
         xpit script for the sudoku example. (sudoku.lp + extreme_instance.lp)
 
         Explain why 2 cannot be placed at (2,5), focusing on constraints for value 2.
         """
-))
+    )
+)
 @click.option(
     "--log-level",
     type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"], case_sensitive=False),

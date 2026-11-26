@@ -13,7 +13,8 @@ from xpit.utils.logging import configure_logging, get_logger
 logger = get_logger(__name__)
 
 
-@click.command(help=(
+@click.command(
+    help=(
         """
         xpit script for the sudoku example. (sudoku.lp + extreme_instance.lp)
 
@@ -21,7 +22,8 @@ logger = get_logger(__name__)
         Use -n 0 to find all explanations.
         Explore forced values at (4,5), (5,6), and (6,6), grouping other placement questions.
         """
-))
+    )
+)
 @click.option(
     "--log-level",
     type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"], case_sensitive=False),
