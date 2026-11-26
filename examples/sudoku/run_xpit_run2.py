@@ -6,15 +6,26 @@ import click
 import clingo
 
 from xpit.definitions.define import PortionId, PortionIdFilter
-from xpit.director import ExplanationDirector, ExplorerMethod
+from xpit.director import ExplanationDirector
 from xpit.explainer import ProgramExplainer
 from xpit.utils.logging import configure_logging, get_logger
 
-configure_logging(sys.stdout, logging.DEBUG, True)
 logger = get_logger(__name__)
 
 
-@click.command()
+@click.command(help=(
+        """
+        xpit script for the sudoku example. (sudoku.lp + extreme_instance.lp)
+
+        Explain why 2 cannot be placed at (2,5), focusing on constraints for value 2.
+        """
+))
+@click.option(
+    "--log-level",
+    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"], case_sensitive=False),
+    default="INFO",
+    help="Set the logging verbosity. (default: info)",
+)
 @click.option(
     "--max-eunit-num",
     type=int,
@@ -45,7 +56,9 @@ logger = get_logger(__name__)
     type=click.Path(exists=True),
     nargs=-1,
 )
-def run_explanation(max_eunit_num, fact_sig, number_of_explanations, lp_program_files):
+def run_explanation(log_level, max_eunit_num, fact_sig, number_of_explanations, lp_program_files):
+    configure_logging(sys.stdout, getattr(logging, log_level), True)
+
     fact_signatures = []
     for sig in fact_sig:
         (n, a) = sig.split("/")
@@ -105,7 +118,7 @@ def run_explanation(max_eunit_num, fact_sig, number_of_explanations, lp_program_
             for exp_por in expdir.compute_explanation(core):
                 print(exp_por.get_message())
     else:
-        for core in expdir.compute_all_minimal_core_eunits(ExplorerMethod.ASP):
+        for core in expdir.compute_all_minimal_core_eunits():
             idx += 1
             if number_of_explanations > 0 and idx > number_of_explanations:
                 return
